@@ -281,7 +281,7 @@ elif page == "PM Schedule":
         if "work_orders" not in st.session_state:
             st.session_state.work_orders = []
 
-                generated_count = 0
+             generated_count = 0
 
                 for pm in st.session_state.pm_schedules:
 
