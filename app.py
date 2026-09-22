@@ -382,67 +382,102 @@ elif page == "Work Orders":
     st.title("Work Orders")
     st.caption("Manage and track maintenance work orders.")
 
-    # -----------------------------
+    # --------------------------------
+    # WORK ORDER DATABASE
+    # --------------------------------
+    if "work_orders" not in st.session_state:
+        st.session_state.work_orders = [
+            {
+                "WO ID": "WO-001",
+                "Asset": "P-101",
+                "Work": "Pump Inspection",
+                "Type": "Preventive Maintenance",
+                "Priority": "Normal",
+                "Assigned To": "Technician A",
+                "Status": "Assigned",
+                "Estimated Hours": 1.0
+            },
+            {
+                "WO ID": "WO-002",
+                "Asset": "BL-02",
+                "Work": "Investigate abnormal vibration",
+                "Type": "Inspection",
+                "Priority": "High",
+                "Assigned To": "Technician B",
+                "Status": "In Progress",
+                "Estimated Hours": 2.0
+            },
+            {
+                "WO ID": "WO-003",
+                "Asset": "RO-P03",
+                "Work": "Mechanical seal inspection",
+                "Type": "Corrective Maintenance",
+                "Priority": "Urgent",
+                "Assigned To": "Technician C",
+                "Status": "Pending Engineer Review",
+                "Estimated Hours": 4.0
+            }
+        ]
+
+    # --------------------------------
     # WORK ORDER SUMMARY
-    # -----------------------------
+    # --------------------------------
+    open_count = sum(
+        1 for wo in st.session_state.work_orders
+        if wo["Status"] == "Open"
+    )
+
+    progress_count = sum(
+        1 for wo in st.session_state.work_orders
+        if wo["Status"] == "In Progress"
+    )
+
+    review_count = sum(
+        1 for wo in st.session_state.work_orders
+        if wo["Status"] == "Pending Engineer Review"
+    )
+
+    completed_count = sum(
+        1 for wo in st.session_state.work_orders
+        if wo["Status"] in ["Completed", "Closed"]
+    )
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Open", 3)
+        st.metric("Open", open_count)
 
     with col2:
-        st.metric("In Progress", 2)
+        st.metric("In Progress", progress_count)
 
     with col3:
-        st.metric("Pending Review", 1)
+        st.metric("Pending Review", review_count)
 
     with col4:
-        st.metric("Completed", 8)
+        st.metric("Completed", completed_count)
 
     st.divider()
 
-    # -----------------------------
+    # --------------------------------
     # ACTIVE WORK ORDERS
-    # -----------------------------
+    # --------------------------------
     st.subheader("Active Work Orders")
 
-    work_orders = [
-        {
-            "WO ID": "WO-001",
-            "Asset": "P-101",
-            "Work": "Pump Inspection",
-            "Type": "Preventive Maintenance",
-            "Priority": "Normal",
-            "Assigned To": "Technician A",
-            "Status": "Assigned"
-        },
-        {
-            "WO ID": "WO-002",
-            "Asset": "BL-02",
-            "Work": "Investigate abnormal vibration",
-            "Type": "Inspection",
-            "Priority": "High",
-            "Assigned To": "Technician B",
-            "Status": "In Progress"
-        },
-        {
-            "WO ID": "WO-003",
-            "Asset": "RO-P03",
-            "Work": "Mechanical seal inspection",
-            "Type": "Corrective Maintenance",
-            "Priority": "Urgent",
-            "Assigned To": "Technician C",
-            "Status": "Pending Engineer Review"
-        }
+    active_work_orders = [
+        wo for wo in st.session_state.work_orders
+        if wo["Status"] not in ["Completed", "Closed"]
     ]
 
-    st.dataframe(work_orders, use_container_width=True)
+    st.dataframe(
+        active_work_orders,
+        use_container_width=True
+    )
 
     st.divider()
 
-    # -----------------------------
+    # --------------------------------
     # CREATE WORK ORDER
-    # -----------------------------
+    # --------------------------------
     st.subheader("Create Work Order")
 
     with st.form("work_order_form"):
@@ -452,13 +487,15 @@ elif page == "Work Orders":
         with col1:
             wo_id = st.text_input("Work Order ID")
 
+            asset_options = [
+                f"{item['Asset ID']} - {item['Asset Name']}"
+                for item in st.session_state.assets
+                if item["Status"] == "Active"
+            ]
+
             asset = st.selectbox(
                 "Asset",
-                [
-                    "P-101 - Raw Water Pump 1",
-                    "BL-02 - Aeration Blower 2",
-                    "RO-P03 - RO High Pressure Pump"
-                ]
+                asset_options
             )
 
             maintenance_type = st.selectbox(
@@ -515,15 +552,34 @@ elif page == "Work Orders":
         submitted = st.form_submit_button("Create Work Order")
 
         if submitted:
+
             if wo_id and work_description:
+
+                asset_id = asset.split(" - ")[0]
+
+                new_work_order = {
+                    "WO ID": wo_id,
+                    "Asset": asset_id,
+                    "Work": work_description,
+                    "Type": maintenance_type,
+                    "Priority": priority,
+                    "Assigned To": technician,
+                    "Status": status,
+                    "Estimated Hours": estimated_hours
+                }
+
+                st.session_state.work_orders.append(new_work_order)
+
                 st.success(
                     f"Work Order {wo_id} created successfully."
                 )
+
+                st.rerun()
+
             else:
                 st.error(
                     "Work Order ID and Work Description are required."
                 )
-
 elif page == "Corrective Maintenance":
     st.title("Corrective Maintenance")
     st.caption("Record breakdowns, corrective actions and maintenance findings.")
