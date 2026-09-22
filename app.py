@@ -567,8 +567,166 @@ elif page == "Corrective Maintenance":
                 )
 
 elif page == "Procurement":
-    st.title("Procurement")
-    st.info("PR / IER requests triggered by maintenance will appear here.")
+    st.title("Maintenance Procurement")
+    st.caption("Manage PR / IER requests generated from maintenance activities.")
+
+    # -----------------------------
+    # PROCUREMENT SUMMARY
+    # -----------------------------
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("New Requests", 2)
+
+    with col2:
+        st.metric("Pending Approval", 1)
+
+    with col3:
+        st.metric("PR / IER Issued", 3)
+
+    with col4:
+        st.metric("Completed", 5)
+
+    st.divider()
+
+    # -----------------------------
+    # PROCUREMENT REQUESTS
+    # -----------------------------
+    st.subheader("Maintenance Procurement Requests")
+
+    procurement_data = [
+        {
+            "Request ID": "MPR-001",
+            "CM ID": "CM-001",
+            "WO ID": "WO-003",
+            "Asset": "RO-P03",
+            "Requirement": "Mechanical Seal",
+            "Priority": "Urgent",
+            "Document": "PR",
+            "Status": "Pending Approval"
+        },
+        {
+            "Request ID": "MPR-002",
+            "CM ID": "CM-003",
+            "WO ID": "WO-005",
+            "Asset": "P-101",
+            "Requirement": "External Pump Repair",
+            "Priority": "High",
+            "Document": "IER",
+            "Status": "New"
+        }
+    ]
+
+    st.dataframe(procurement_data, use_container_width=True)
+
+    st.divider()
+
+    # -----------------------------
+    # PROCUREMENT REQUEST DETAILS
+    # -----------------------------
+    st.subheader("Process Procurement Request")
+
+    with st.container(border=True):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            request_id = st.text_input("Request ID")
+
+            cm_reference = st.selectbox(
+                "Corrective Maintenance Reference",
+                ["CM-001", "CM-002", "CM-003"]
+            )
+
+            asset = st.selectbox(
+                "Asset",
+                [
+                    "P-101 - Raw Water Pump 1",
+                    "BL-02 - Aeration Blower 2",
+                    "RO-P03 - RO High Pressure Pump"
+                ]
+            )
+
+            requirement_type = st.selectbox(
+                "Requirement Type",
+                [
+                    "Spare Part",
+                    "Material",
+                    "External Service",
+                    "Repair Service",
+                    "Replacement Equipment",
+                    "Other"
+                ]
+            )
+
+        with col2:
+            priority = st.selectbox(
+                "Priority",
+                ["Low", "Normal", "High", "Urgent"],
+                index=1
+            )
+
+            document_type = st.selectbox(
+                "Procurement Document",
+                ["PR", "IER"]
+            )
+
+            estimated_cost = st.number_input(
+                "Estimated Cost (RM)",
+                min_value=0.0,
+                step=100.0
+            )
+
+            procurement_status = st.selectbox(
+                "Status",
+                [
+                    "New",
+                    "Pending Engineer Review",
+                    "Pending Approval",
+                    "PR / IER Issued",
+                    "PO Issued",
+                    "Completed"
+                ]
+            )
+
+        requirement = st.text_area(
+            "Material / Service Required",
+            placeholder="Describe the required material, spare part or service..."
+        )
+
+        justification = st.text_area(
+            "Justification",
+            placeholder="Maintenance justification for procurement..."
+        )
+
+        generate_document = st.checkbox(
+            "Generate PR / IER document"
+        )
+
+        if generate_document:
+            st.info(
+                f"{document_type} will be generated from this maintenance request."
+            )
+
+        submitted = st.button(
+            "Submit Procurement Request",
+            type="primary"
+        )
+
+        if submitted:
+            if request_id and requirement:
+                st.success(
+                    f"Procurement Request {request_id} submitted successfully."
+                )
+
+                if generate_document:
+                    st.success(
+                        f"{document_type} generation initiated."
+                    )
+            else:
+                st.error(
+                    "Request ID and Material / Service Required are required."
+                )
 
 elif page == "Maintenance History":
     st.title("Maintenance History")
