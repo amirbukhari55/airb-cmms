@@ -276,6 +276,48 @@ elif page == "PM Schedule":
         use_container_width=True
     )
 
+        if st.button("Generate Work Orders for Due PM"):
+
+        if "work_orders" not in st.session_state:
+            st.session_state.work_orders = []
+
+        generated_count = 0
+
+        for pm in st.session_state.pm_schedules:
+
+            if pm["Status"] == "Due":
+
+                existing_wo = any(
+                    wo.get("PM ID") == pm["PM ID"]
+                    for wo in st.session_state.work_orders
+                )
+
+                if not existing_wo:
+
+                    new_wo = {
+                        "WO ID": f"WO-{pm['PM ID']}",
+                        "PM ID": pm["PM ID"],
+                        "Asset": pm["Asset"],
+                        "Work": pm["Task"],
+                        "Type": "Preventive Maintenance",
+                        "Priority": "Normal",
+                        "Assigned To": pm["Assigned Technician"],
+                        "Status": "Assigned",
+                        "Estimated Hours": 1.0
+                    }
+
+                    st.session_state.work_orders.append(new_wo)
+                    generated_count += 1
+
+        if generated_count > 0:
+            st.success(
+                f"{generated_count} preventive maintenance work order(s) generated."
+            )
+        else:
+            st.info(
+                "No new due PM work orders to generate."
+            )
+
     st.divider()
 
     # --------------------------------
