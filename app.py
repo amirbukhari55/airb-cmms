@@ -655,7 +655,7 @@ elif page == "Corrective Maintenance":
     # -----------------------------
     st.subheader("Open Corrective Maintenance")
 
-        st.dataframe(
+    st.dataframe(
         st.session_state.corrective_maintenance,
         use_container_width=True
     )
