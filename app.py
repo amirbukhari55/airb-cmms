@@ -546,7 +546,7 @@ elif page == "Corrective Maintenance":
                 "Procurement Justification"
             )
 
-        submitted = st.form_submit_button(
+        submitted = st.button(
             "Submit Corrective Maintenance",
             type="primary"
         )
