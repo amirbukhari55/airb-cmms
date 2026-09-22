@@ -876,18 +876,35 @@ elif page == "Procurement":
         with col1:
             request_id = st.text_input("Request ID")
 
+            cm_options = [
+                cm["CM ID"]
+                for cm in st.session_state.corrective_maintenance
+                if cm["Procurement"] == "Required"
+            ]
+            
             cm_reference = st.selectbox(
                 "Corrective Maintenance Reference",
-                ["CM-001", "CM-002", "CM-003"]
+                cm_options
             )
-
-            asset = st.selectbox(
+            
+            selected_cm = next(
+                cm for cm in st.session_state.corrective_maintenance
+                if cm["CM ID"] == cm_reference
+            )
+            
+            asset = selected_cm["Asset"]
+            wo_reference = selected_cm["WO ID"]
+            
+            st.text_input(
                 "Asset",
-                [
-                    "P-101 - Raw Water Pump 1",
-                    "BL-02 - Aeration Blower 2",
-                    "RO-P03 - RO High Pressure Pump"
-                ]
+                value=asset,
+                disabled=True
+            )
+            
+            st.text_input(
+                "Related Work Order",
+                value=wo_reference,
+                disabled=True
             )
 
             requirement_type = st.selectbox(
