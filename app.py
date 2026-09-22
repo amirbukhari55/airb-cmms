@@ -29,7 +29,29 @@ if "assets" not in st.session_state:
             "Status": "Active"
         }
     ]
-
+    
+if "pm_schedules" not in st.session_state:
+    st.session_state.pm_schedules = [
+        {
+            "PM Schedule ID": "PM-001",
+            "Asset": "P-101 - Raw Water Pump 1",
+            "Maintenance Type": "Preventive Maintenance",
+            "Frequency": "Monthly",
+            "Next Due Date": "2026-09-22",
+            "Assigned Technician": "Technician A",
+            "Status": "Active"
+        },
+        {
+            "PM Schedule ID": "PM-002",
+            "Asset": "BL-02 - Blower 2",
+            "Maintenance Type": "Preventive Maintenance",
+            "Frequency": "Monthly",
+            "Next Due Date": "2026-09-24",
+            "Assigned Technician": "Technician B",
+            "Status": "Active"
+        }
+    ]
+    
 st.set_page_config(
     page_title="AIRB CMMS",
     page_icon="🔧",
