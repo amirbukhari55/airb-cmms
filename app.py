@@ -459,6 +459,11 @@ elif page == "Corrective Maintenance":
     # -----------------------------
     st.subheader("Record Corrective Maintenance")
 
+    procurement_required = st.selectbox(
+                "Procurement Required?",
+                ["No", "Yes"]
+            )
+    
     with st.form("corrective_maintenance_form"):
 
         col1, col2 = st.columns(2)
@@ -503,11 +508,6 @@ elif page == "Corrective Maintenance":
                 "Downtime (Hours)",
                 min_value=0.0,
                 step=0.5
-            )
-
-            procurement_required = st.selectbox(
-                "Procurement Required?",
-                ["No", "Yes"]
             )
 
             status = st.selectbox(
