@@ -422,7 +422,146 @@ elif page == "Work Orders":
 
 elif page == "Corrective Maintenance":
     st.title("Corrective Maintenance")
-    st.info("Corrective maintenance and breakdown activities will be managed here.")
+    st.caption("Record breakdowns, corrective actions and maintenance findings.")
+
+    # -----------------------------
+    # OPEN CORRECTIVE MAINTENANCE
+    # -----------------------------
+    st.subheader("Open Corrective Maintenance")
+
+    cm_data = [
+        {
+            "CM ID": "CM-001",
+            "WO ID": "WO-003",
+            "Asset": "RO-P03",
+            "Problem": "Mechanical seal leakage",
+            "Priority": "Urgent",
+            "Procurement": "Required",
+            "Status": "Pending Engineer Review"
+        },
+        {
+            "CM ID": "CM-002",
+            "WO ID": "WO-002",
+            "Asset": "BL-02",
+            "Problem": "Abnormal vibration",
+            "Priority": "High",
+            "Procurement": "Not Required",
+            "Status": "In Progress"
+        }
+    ]
+
+    st.dataframe(cm_data, use_container_width=True)
+
+    st.divider()
+
+    # -----------------------------
+    # CORRECTIVE MAINTENANCE FORM
+    # -----------------------------
+    st.subheader("Record Corrective Maintenance")
+
+    with st.form("corrective_maintenance_form"):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            cm_id = st.text_input("CM ID")
+
+            wo_id = st.selectbox(
+                "Related Work Order",
+                ["WO-001", "WO-002", "WO-003"]
+            )
+
+            asset = st.selectbox(
+                "Asset",
+                [
+                    "P-101 - Raw Water Pump 1",
+                    "BL-02 - Aeration Blower 2",
+                    "RO-P03 - RO High Pressure Pump"
+                ]
+            )
+
+            priority = st.selectbox(
+                "Priority",
+                ["Low", "Normal", "High", "Urgent"],
+                index=1
+            )
+
+        with col2:
+            failure_type = st.selectbox(
+                "Failure Type",
+                [
+                    "Mechanical",
+                    "Electrical",
+                    "Instrumentation",
+                    "Process",
+                    "Control / PLC",
+                    "Other"
+                ]
+            )
+
+            downtime = st.number_input(
+                "Downtime (Hours)",
+                min_value=0.0,
+                step=0.5
+            )
+
+            procurement_required = st.selectbox(
+                "Procurement Required?",
+                ["No", "Yes"]
+            )
+
+            status = st.selectbox(
+                "Status",
+                [
+                    "Open",
+                    "In Progress",
+                    "Pending Engineer Review",
+                    "Completed",
+                    "Closed"
+                ]
+            )
+
+        problem = st.text_area(
+            "Problem / Failure Description",
+            placeholder="Describe the problem or failure..."
+        )
+
+        action = st.text_area(
+            "Corrective Action",
+            placeholder="Describe troubleshooting, repair or corrective action..."
+        )
+
+        if procurement_required == "Yes":
+            st.warning(
+                "Procurement required. A PR / IER request will be initiated."
+            )
+
+            item_required = st.text_input(
+                "Material / Service Required"
+            )
+
+            justification = st.text_area(
+                "Procurement Justification"
+            )
+
+        submitted = st.form_submit_button(
+            "Submit Corrective Maintenance"
+        )
+
+        if submitted:
+            if cm_id and problem:
+                st.success(
+                    f"Corrective Maintenance {cm_id} submitted successfully."
+                )
+
+                if procurement_required == "Yes":
+                    st.info(
+                        "Procurement request flagged for PR / IER generation."
+                    )
+            else:
+                st.error(
+                    "CM ID and Problem / Failure Description are required."
+                )
 
 elif page == "Procurement":
     st.title("Procurement")
