@@ -288,17 +288,17 @@ elif page == "PM Schedule":
                 if pd.to_datetime(pm["Next Due Date"]).date() <= pd.Timestamp.today().date():
 
                     existing_wo = any(
-                        wo.get("PM ID") == pm["PM ID"]
+                        wo.get("PM Schedule ID") == pm["PM Schedule ID"]
                         for wo in st.session_state.work_orders
                     )
 
                     if not existing_wo:
         
                         new_wo = {
-                            "WO ID": f"WO-{pm['PM ID']}",
-                            "PM ID": pm["PM ID"],
+                            "WO ID": f"WO-{pm['PM Schedule ID']}",
+                            "PM Schedule ID": pm["PM Schedule ID"],
                             "Asset": pm["Asset"],
-                            "Work": pm["Task"],
+                            "Work": "Scheduled Preventive Maintenance",
                             "Type": "Preventive Maintenance",
                             "Priority": "Normal",
                             "Assigned To": pm["Assigned Technician"],
