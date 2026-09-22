@@ -51,7 +51,31 @@ if "pm_schedules" not in st.session_state:
             "Status": "Active"
         }
     ]
-    
+if "corrective_maintenance" not in st.session_state:
+    st.session_state.corrective_maintenance = [
+        {
+            "CM ID": "CM-001",
+            "WO ID": "WO-003",
+            "Asset": "RO-P03",
+            "Problem": "Mechanical seal leakage",
+            "Failure Type": "Mechanical",
+            "Priority": "Urgent",
+            "Downtime": 4.0,
+            "Procurement": "Required",
+            "Status": "Pending Engineer Review"
+        },
+        {
+            "CM ID": "CM-002",
+            "WO ID": "WO-002",
+            "Asset": "BL-02",
+            "Problem": "Abnormal vibration",
+            "Failure Type": "Mechanical",
+            "Priority": "High",
+            "Downtime": 2.0,
+            "Procurement": "Not Required",
+            "Status": "In Progress"
+        }
+    ]
 st.set_page_config(
     page_title="AIRB CMMS",
     page_icon="🔧",
