@@ -975,14 +975,31 @@ elif page == "Procurement":
 
         if submitted:
             if request_id and requirement:
+
+                new_request = {
+                    "Request ID": request_id,
+                    "CM ID": cm_reference,
+                    "WO ID": wo_reference,
+                    "Asset": asset,
+                    "Requirement": requirement,
+                    "Priority": priority,
+                    "Document": document_type,
+                    "Status": procurement_status
+                }
+        
+                st.session_state.procurement_requests.append(new_request)
+        
                 st.success(
                     f"Procurement Request {request_id} submitted successfully."
                 )
-
+        
                 if generate_document:
                     st.success(
                         f"{document_type} generation initiated."
                     )
+        
+                st.rerun()
+        
             else:
                 st.error(
                     "Request ID and Material / Service Required are required."
