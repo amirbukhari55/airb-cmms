@@ -285,7 +285,7 @@ elif page == "PM Schedule":
 
             for pm in st.session_state.pm_schedules:
 
-                if pm["Status"] == "Due":
+                if pd.to_datetime(pm["Next Due Date"]).date() <= pd.Timestamp.today().date():
 
                     existing_wo = any(
                         wo.get("PM ID") == pm["PM ID"]
