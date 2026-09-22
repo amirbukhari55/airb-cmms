@@ -89,7 +89,67 @@ if page == "Dashboard":
 # -----------------------------
 elif page == "Asset Register":
     st.title("Asset Register")
-    st.info("Asset registration module will be developed here.")
+    st.caption("Register and manage plant assets and equipment.")
+
+    # Sample asset database
+    assets = [
+        {
+            "Asset ID": "P-101",
+            "Asset Name": "Raw Water Pump 1",
+            "Asset Type": "Pump",
+            "Location": "Pump House",
+            "Status": "Active"
+        },
+        {
+            "Asset ID": "BL-02",
+            "Asset Name": "Aeration Blower 2",
+            "Asset Type": "Blower",
+            "Location": "Blower Room",
+            "Status": "Active"
+        },
+        {
+            "Asset ID": "RO-P03",
+            "Asset Name": "RO High Pressure Pump",
+            "Asset Type": "Pump",
+            "Location": "RO Plant",
+            "Status": "Active"
+        }
+    ]
+
+    st.subheader("Registered Assets")
+    st.dataframe(assets, use_container_width=True)
+
+    st.divider()
+
+    st.subheader("Register New Asset")
+
+    with st.form("asset_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            asset_id = st.text_input("Asset ID")
+            asset_name = st.text_input("Asset Name")
+            asset_type = st.selectbox(
+                "Asset Type",
+                ["Pump", "Blower", "Motor", "Valve", "Instrument",
+                 "Tank", "Filter", "Membrane System", "Other"]
+            )
+
+        with col2:
+            location = st.text_input("Location")
+            status = st.selectbox(
+                "Status",
+                ["Active", "Inactive", "Under Maintenance"]
+            )
+            manufacturer = st.text_input("Manufacturer")
+
+        submitted = st.form_submit_button("Register Asset")
+
+        if submitted:
+            if asset_id and asset_name:
+                st.success(f"Asset {asset_id} - {asset_name} registered successfully.")
+            else:
+                st.error("Asset ID and Asset Name are required.")
 
 elif page == "PM Schedule":
     st.title("Preventive Maintenance Schedule")
