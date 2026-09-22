@@ -276,7 +276,149 @@ elif page == "PM Schedule":
 
 elif page == "Work Orders":
     st.title("Work Orders")
-    st.info("Maintenance work orders will be managed here.")
+    st.caption("Manage and track maintenance work orders.")
+
+    # -----------------------------
+    # WORK ORDER SUMMARY
+    # -----------------------------
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Open", 3)
+
+    with col2:
+        st.metric("In Progress", 2)
+
+    with col3:
+        st.metric("Pending Review", 1)
+
+    with col4:
+        st.metric("Completed", 8)
+
+    st.divider()
+
+    # -----------------------------
+    # ACTIVE WORK ORDERS
+    # -----------------------------
+    st.subheader("Active Work Orders")
+
+    work_orders = [
+        {
+            "WO ID": "WO-001",
+            "Asset": "P-101",
+            "Work": "Pump Inspection",
+            "Type": "Preventive Maintenance",
+            "Priority": "Normal",
+            "Assigned To": "Technician A",
+            "Status": "Assigned"
+        },
+        {
+            "WO ID": "WO-002",
+            "Asset": "BL-02",
+            "Work": "Investigate abnormal vibration",
+            "Type": "Inspection",
+            "Priority": "High",
+            "Assigned To": "Technician B",
+            "Status": "In Progress"
+        },
+        {
+            "WO ID": "WO-003",
+            "Asset": "RO-P03",
+            "Work": "Mechanical seal inspection",
+            "Type": "Corrective Maintenance",
+            "Priority": "Urgent",
+            "Assigned To": "Technician C",
+            "Status": "Pending Engineer Review"
+        }
+    ]
+
+    st.dataframe(work_orders, use_container_width=True)
+
+    st.divider()
+
+    # -----------------------------
+    # CREATE WORK ORDER
+    # -----------------------------
+    st.subheader("Create Work Order")
+
+    with st.form("work_order_form"):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            wo_id = st.text_input("Work Order ID")
+
+            asset = st.selectbox(
+                "Asset",
+                [
+                    "P-101 - Raw Water Pump 1",
+                    "BL-02 - Aeration Blower 2",
+                    "RO-P03 - RO High Pressure Pump"
+                ]
+            )
+
+            maintenance_type = st.selectbox(
+                "Maintenance Type",
+                [
+                    "Breakdown / Emergency",
+                    "Calibration",
+                    "Corrective Maintenance",
+                    "Inspection",
+                    "Preventive Maintenance",
+                    "Testing"
+                ]
+            )
+
+            priority = st.selectbox(
+                "Priority",
+                ["Low", "Normal", "High", "Urgent"],
+                index=1
+            )
+
+        with col2:
+            technician = st.selectbox(
+                "Assigned Technician",
+                [
+                    "Technician A",
+                    "Technician B",
+                    "Technician C"
+                ]
+            )
+
+            status = st.selectbox(
+                "Status",
+                [
+                    "Open",
+                    "Assigned",
+                    "In Progress",
+                    "Pending Engineer Review",
+                    "Completed",
+                    "Closed"
+                ]
+            )
+
+            estimated_hours = st.number_input(
+                "Estimated Duration (Hours)",
+                min_value=0.5,
+                step=0.5
+            )
+
+        work_description = st.text_area(
+            "Work Description",
+            placeholder="Describe the maintenance work required..."
+        )
+
+        submitted = st.form_submit_button("Create Work Order")
+
+        if submitted:
+            if wo_id and work_description:
+                st.success(
+                    f"Work Order {wo_id} created successfully."
+                )
+            else:
+                st.error(
+                    "Work Order ID and Work Description are required."
+                )
 
 elif page == "Corrective Maintenance":
     st.title("Corrective Maintenance")
