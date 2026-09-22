@@ -655,28 +655,10 @@ elif page == "Corrective Maintenance":
     # -----------------------------
     st.subheader("Open Corrective Maintenance")
 
-    cm_data = [
-        {
-            "CM ID": "CM-001",
-            "WO ID": "WO-003",
-            "Asset": "RO-P03",
-            "Problem": "Mechanical seal leakage",
-            "Priority": "Urgent",
-            "Procurement": "Required",
-            "Status": "Pending Engineer Review"
-        },
-        {
-            "CM ID": "CM-002",
-            "WO ID": "WO-002",
-            "Asset": "BL-02",
-            "Problem": "Abnormal vibration",
-            "Priority": "High",
-            "Procurement": "Not Required",
-            "Status": "In Progress"
-        }
-    ]
-
-    st.dataframe(cm_data, use_container_width=True)
+        st.dataframe(
+        st.session_state.corrective_maintenance,
+        use_container_width=True
+    )
 
     st.divider()
 
