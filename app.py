@@ -459,12 +459,9 @@ elif page == "Corrective Maintenance":
     # -----------------------------
     st.subheader("Record Corrective Maintenance")
 
-    procurement_required = st.selectbox(
-                "Procurement Required?",
-                ["No", "Yes"]
-            )
     
-    with st.form("corrective_maintenance_form"):
+    
+    with st.container(border=True):
 
         col1, col2 = st.columns(2)
 
@@ -510,6 +507,11 @@ elif page == "Corrective Maintenance":
                 step=0.5
             )
 
+            procurement_required = st.selectbox(
+                "Procurement Required?",
+                ["No", "Yes"]
+            )
+            
             status = st.selectbox(
                 "Status",
                 [
@@ -545,7 +547,8 @@ elif page == "Corrective Maintenance":
             )
 
         submitted = st.form_submit_button(
-            "Submit Corrective Maintenance"
+            "Submit Corrective Maintenance",
+            type="primary"
         )
 
         if submitted:
