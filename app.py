@@ -676,18 +676,28 @@ elif page == "Corrective Maintenance":
         with col1:
             cm_id = st.text_input("CM ID")
 
+            wo_options = [
+                wo["WO ID"]
+                for wo in st.session_state.work_orders
+                if wo["Status"] not in ["Completed", "Closed"]
+            ]
+
             wo_id = st.selectbox(
                 "Related Work Order",
-                ["WO-001", "WO-002", "WO-003"]
+                wo_options
             )
 
-            asset = st.selectbox(
+            selected_wo = next(
+                wo for wo in st.session_state.work_orders
+                if wo["WO ID"] == wo_id
+            )
+
+            asset = selected_wo["Asset"]
+
+            st.text_input(
                 "Asset",
-                [
-                    "P-101 - Raw Water Pump 1",
-                    "BL-02 - Aeration Blower 2",
-                    "RO-P03 - RO High Pressure Pump"
-                ]
+                value=asset,
+                disabled=True
             )
 
             priority = st.selectbox(
