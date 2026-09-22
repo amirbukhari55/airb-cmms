@@ -1,6 +1,35 @@
 import streamlit as st
 import pandas as pd
 
+# -----------------------------
+# SESSION DATA
+# -----------------------------
+
+if "assets" not in st.session_state:
+    st.session_state.assets = [
+        {
+            "Asset ID": "P-101",
+            "Asset Name": "Raw Water Pump 1",
+            "Location": "WTP",
+            "Asset Type": "Pump",
+            "Status": "Active"
+        },
+        {
+            "Asset ID": "BL-02",
+            "Asset Name": "Blower 2",
+            "Location": "STP",
+            "Asset Type": "Blower",
+            "Status": "Active"
+        },
+        {
+            "Asset ID": "RO-P03",
+            "Asset Name": "RO High Pressure Pump",
+            "Location": "WRP",
+            "Asset Type": "Pump",
+            "Status": "Active"
+        }
+    ]
+
 st.set_page_config(
     page_title="AIRB CMMS",
     page_icon="🔧",
