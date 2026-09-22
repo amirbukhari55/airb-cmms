@@ -121,36 +121,24 @@ elif page == "Asset Register":
     st.title("Asset Register")
     st.caption("Register and manage plant assets and equipment.")
 
-    # Sample asset database
-    assets = [
-        {
-            "Asset ID": "P-101",
-            "Asset Name": "Raw Water Pump 1",
-            "Asset Type": "Pump",
-            "Location": "Pump House",
-            "Status": "Active"
-        },
-        {
-            "Asset ID": "BL-02",
-            "Asset Name": "Aeration Blower 2",
-            "Asset Type": "Blower",
-            "Location": "Blower Room",
-            "Status": "Active"
-        },
-        {
-            "Asset ID": "RO-P03",
-            "Asset Name": "RO High Pressure Pump",
-            "Asset Type": "Pump",
-            "Location": "RO Plant",
-            "Status": "Active"
-        }
-    ]
-
+    # -----------------------------
+    # REGISTERED ASSETS
+    # -----------------------------
     st.subheader("Registered Assets")
-    st.dataframe(assets, use_container_width=True)
+
+    assets_df = pd.DataFrame(st.session_state.assets)
+
+    st.dataframe(
+        assets_df,
+        use_container_width=True,
+        hide_index=True
+    )
 
     st.divider()
 
+    # -----------------------------
+    # REGISTER NEW ASSET
+    # -----------------------------
     st.subheader("Register New Asset")
 
     with st.form("asset_form"):
@@ -159,25 +147,59 @@ elif page == "Asset Register":
         with col1:
             asset_id = st.text_input("Asset ID")
             asset_name = st.text_input("Asset Name")
+
             asset_type = st.selectbox(
                 "Asset Type",
-                ["Pump", "Blower", "Motor", "Valve", "Instrument",
-                 "Tank", "Filter", "Membrane System", "Other"]
+                [
+                    "Pump",
+                    "Blower",
+                    "Motor",
+                    "Valve",
+                    "Instrument",
+                    "Tank",
+                    "Filter",
+                    "Membrane System",
+                    "Other"
+                ]
             )
 
         with col2:
             location = st.text_input("Location")
+
             status = st.selectbox(
                 "Status",
-                ["Active", "Inactive", "Under Maintenance"]
+                [
+                    "Active",
+                    "Inactive",
+                    "Under Maintenance"
+                ]
             )
+
             manufacturer = st.text_input("Manufacturer")
 
         submitted = st.form_submit_button("Register Asset")
 
         if submitted:
+
             if asset_id and asset_name:
-                st.success(f"Asset {asset_id} - {asset_name} registered successfully.")
+
+                new_asset = {
+                    "Asset ID": asset_id,
+                    "Asset Name": asset_name,
+                    "Asset Type": asset_type,
+                    "Location": location,
+                    "Status": status,
+                    "Manufacturer": manufacturer
+                }
+
+                st.session_state.assets.append(new_asset)
+
+                st.success(
+                    f"Asset {asset_id} - {asset_name} registered successfully."
+                )
+
+                st.rerun()
+
             else:
                 st.error("Asset ID and Asset Name are required.")
 
