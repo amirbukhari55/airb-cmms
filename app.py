@@ -76,6 +76,29 @@ if "corrective_maintenance" not in st.session_state:
             "Status": "In Progress"
         }
     ]
+if "procurement_requests" not in st.session_state:
+    st.session_state.procurement_requests = [
+        {
+            "Request ID": "MPR-001",
+            "CM ID": "CM-001",
+            "WO ID": "WO-003",
+            "Asset": "RO-P03",
+            "Requirement": "Mechanical Seal",
+            "Priority": "Urgent",
+            "Document": "PR",
+            "Status": "Pending Approval"
+        },
+        {
+            "Request ID": "MPR-002",
+            "CM ID": "CM-003",
+            "WO ID": "WO-005",
+            "Asset": "P-101",
+            "Requirement": "External Pump Repair",
+            "Priority": "High",
+            "Document": "IER",
+            "Status": "New"
+        }
+    ]
 st.set_page_config(
     page_title="AIRB CMMS",
     page_icon="🔧",
