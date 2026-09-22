@@ -857,30 +857,10 @@ elif page == "Procurement":
     # -----------------------------
     st.subheader("Maintenance Procurement Requests")
 
-    procurement_data = [
-        {
-            "Request ID": "MPR-001",
-            "CM ID": "CM-001",
-            "WO ID": "WO-003",
-            "Asset": "RO-P03",
-            "Requirement": "Mechanical Seal",
-            "Priority": "Urgent",
-            "Document": "PR",
-            "Status": "Pending Approval"
-        },
-        {
-            "Request ID": "MPR-002",
-            "CM ID": "CM-003",
-            "WO ID": "WO-005",
-            "Asset": "P-101",
-            "Requirement": "External Pump Repair",
-            "Priority": "High",
-            "Document": "IER",
-            "Status": "New"
-        }
-    ]
-
-    st.dataframe(procurement_data, use_container_width=True)
+    st.dataframe(
+        st.session_state.procurement_requests,
+        use_container_width=True
+    )
 
     st.divider()
 
