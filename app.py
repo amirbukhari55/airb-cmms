@@ -309,14 +309,14 @@ elif page == "PM Schedule":
                         st.session_state.work_orders.append(new_wo)
                         generated_count += 1
 
-                if generated_count > 0:
-                    st.success(
-                        f"{generated_count} preventive maintenance work order(s) generated."
-                    )
-                else:
-                    st.info(
-                        "No new due PM work orders to generate."
-                    )
+            if generated_count > 0:
+                st.success(
+                    f"{generated_count} preventive maintenance work order(s) generated."
+                )
+            else:
+                st.info(
+                    "No new due PM work orders to generate."
+                )
 
     st.divider()
 
