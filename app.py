@@ -260,13 +260,15 @@ elif page == "PM Schedule":
         with col1:
             pm_id = st.text_input("PM Schedule ID")
 
+            asset_options = [
+                f"{item['Asset ID']} - {item['Asset Name']}"
+                for item in st.session_state.assets
+                if item["Status"] == "Active"
+            ]
+
             asset = st.selectbox(
                 "Asset",
-                [
-                    "P-101 - Raw Water Pump 1",
-                    "BL-02 - Aeration Blower 2",
-                    "RO-P03 - RO High Pressure Pump"
-                ]
+                asset_options
             )
 
             task = st.text_input("PM Task Name")
