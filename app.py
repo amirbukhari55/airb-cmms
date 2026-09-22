@@ -153,7 +153,126 @@ elif page == "Asset Register":
 
 elif page == "PM Schedule":
     st.title("Preventive Maintenance Schedule")
-    st.info("PM scheduling module will be developed here.")
+    st.caption("Plan, assign and monitor preventive maintenance activities.")
+
+    # --------------------------------
+    # SAMPLE PM SCHEDULE
+    # --------------------------------
+    pm_data = [
+        {
+            "PM ID": "PM-001",
+            "Asset": "P-101",
+            "Task": "Pump Inspection",
+            "Maintenance Type": "Preventive Maintenance",
+            "Frequency": "Monthly",
+            "Next Due Date": "22 Sep 2026",
+            "Assigned Technician": "Technician A",
+            "Status": "Due"
+        },
+        {
+            "PM ID": "PM-002",
+            "Asset": "BL-02",
+            "Task": "Blower Service",
+            "Maintenance Type": "Preventive Maintenance",
+            "Frequency": "Quarterly",
+            "Next Due Date": "24 Sep 2026",
+            "Assigned Technician": "Technician B",
+            "Status": "Planned"
+        },
+        {
+            "PM ID": "PM-003",
+            "Asset": "RO-P03",
+            "Task": "Pump Service",
+            "Maintenance Type": "Preventive Maintenance",
+            "Frequency": "Monthly",
+            "Next Due Date": "25 Sep 2026",
+            "Assigned Technician": "Technician A",
+            "Status": "Planned"
+        }
+    ]
+
+    st.subheader("Upcoming Preventive Maintenance")
+    st.dataframe(pm_data, use_container_width=True)
+
+    st.divider()
+
+    # --------------------------------
+    # CREATE PM SCHEDULE
+    # --------------------------------
+    st.subheader("Create PM Schedule")
+
+    with st.form("pm_schedule_form"):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            pm_id = st.text_input("PM Schedule ID")
+
+            asset = st.selectbox(
+                "Asset",
+                [
+                    "P-101 - Raw Water Pump 1",
+                    "BL-02 - Aeration Blower 2",
+                    "RO-P03 - RO High Pressure Pump"
+                ]
+            )
+
+            task = st.text_input("PM Task Name")
+
+            maintenance_type = st.selectbox(
+                "Maintenance Type",
+                [
+                    "Preventive Maintenance",
+                    "Inspection",
+                    "Calibration",
+                    "Testing"
+                ]
+            )
+
+        with col2:
+            frequency = st.selectbox(
+                "Frequency",
+                [
+                    "Daily",
+                    "Weekly",
+                    "Monthly",
+                    "Quarterly",
+                    "Half-Yearly",
+                    "Yearly"
+                ]
+            )
+
+            start_date = st.date_input("Start Date")
+
+            technician = st.selectbox(
+                "Assigned Technician",
+                [
+                    "Technician A",
+                    "Technician B",
+                    "Technician C"
+                ]
+            )
+
+            duration = st.number_input(
+                "Estimated Duration (Hours)",
+                min_value=0.5,
+                step=0.5
+            )
+
+        instructions = st.text_area(
+            "PM Instructions",
+            placeholder="Enter maintenance instructions..."
+        )
+
+        submitted = st.form_submit_button("Create PM Schedule")
+
+        if submitted:
+            if pm_id and task:
+                st.success(
+                    f"PM Schedule {pm_id} for {asset} created successfully."
+                )
+            else:
+                st.error("PM Schedule ID and PM Task Name are required.")
 
 elif page == "Work Orders":
     st.title("Work Orders")
