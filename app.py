@@ -771,6 +771,25 @@ elif page == "Corrective Maintenance":
 
         if submitted:
             if cm_id and problem:
+
+                new_cm = {
+                    "CM ID": cm_id,
+                    "WO ID": wo_id,
+                    "Asset": asset,
+                    "Problem": problem,
+                    "Failure Type": failure_type,
+                    "Priority": priority,
+                    "Downtime": downtime,
+                    "Procurement": (
+                        "Required"
+                        if procurement_required == "Yes"
+                        else "Not Required"
+                    ),
+                    "Status": status
+                }
+
+                st.session_state.corrective_maintenance.append(new_cm)
+
                 st.success(
                     f"Corrective Maintenance {cm_id} submitted successfully."
                 )
@@ -779,6 +798,9 @@ elif page == "Corrective Maintenance":
                     st.info(
                         "Procurement request flagged for PR / IER generation."
                     )
+
+                st.rerun()
+
             else:
                 st.error(
                     "CM ID and Problem / Failure Description are required."
