@@ -729,5 +729,101 @@ elif page == "Procurement":
                 )
 
 elif page == "Maintenance History":
+
     st.title("Maintenance History")
-    st.info("Completed maintenance records will be stored here.")
+    st.caption("Completed preventive and corrective maintenance records")
+
+    history_data = [
+        {
+            "Date": "15 Sep 2026",
+            "WO ID": "WO-001",
+            "Asset": "P-101",
+            "Maintenance Type": "Preventive Maintenance",
+            "Work Description": "Pump inspection and lubrication",
+            "Technician": "Technician A",
+            "Downtime (hr)": 1.0,
+            "Status": "Completed"
+        },
+        {
+            "Date": "18 Sep 2026",
+            "WO ID": "WO-002",
+            "Asset": "BL-02",
+            "Maintenance Type": "Corrective Maintenance",
+            "Work Description": "Investigated abnormal vibration",
+            "Technician": "Technician B",
+            "Downtime (hr)": 2.5,
+            "Status": "Completed"
+        },
+        {
+            "Date": "20 Sep 2026",
+            "WO ID": "WO-003",
+            "Asset": "RO-P03",
+            "Maintenance Type": "Corrective Maintenance",
+            "Work Description": "Mechanical seal replacement",
+            "Technician": "Technician C",
+            "Downtime (hr)": 4.0,
+            "Status": "Completed"
+        }
+    ]
+
+    history_df = pd.DataFrame(history_data)
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Completed Work Orders", len(history_df))
+
+    with col2:
+        st.metric(
+            "Total Downtime",
+            f"{history_df['Downtime (hr)'].sum()} hr"
+        )
+
+    with col3:
+        st.metric(
+            "Corrective Maintenance",
+            len(
+                history_df[
+                    history_df["Maintenance Type"]
+                    == "Corrective Maintenance"
+                ]
+            )
+        )
+
+    st.divider()
+
+    st.subheader("Maintenance Records")
+
+    search_asset = st.text_input(
+        "Search Asset",
+        placeholder="Example: P-101"
+    )
+
+    maintenance_filter = st.selectbox(
+        "Maintenance Type",
+        [
+            "All",
+            "Preventive Maintenance",
+            "Corrective Maintenance"
+        ]
+    )
+
+    filtered_history = history_df.copy()
+
+    if search_asset:
+        filtered_history = filtered_history[
+            filtered_history["Asset"]
+            .str.contains(search_asset, case=False, na=False)
+        ]
+
+    if maintenance_filter != "All":
+        filtered_history = filtered_history[
+            filtered_history["Maintenance Type"]
+            == maintenance_filter
+        ]
+
+    st.dataframe(
+        filtered_history,
+        use_container_width=True,
+        hide_index=True
+    )
