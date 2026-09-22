@@ -230,43 +230,51 @@ elif page == "PM Schedule":
     st.caption("Plan, assign and monitor preventive maintenance activities.")
 
     # --------------------------------
-    # SAMPLE PM SCHEDULE
+    # PM SCHEDULE DATABASE
     # --------------------------------
-    pm_data = [
-        {
-            "PM ID": "PM-001",
-            "Asset": "P-101",
-            "Task": "Pump Inspection",
-            "Maintenance Type": "Preventive Maintenance",
-            "Frequency": "Monthly",
-            "Next Due Date": "22 Sep 2026",
-            "Assigned Technician": "Technician A",
-            "Status": "Due"
-        },
-        {
-            "PM ID": "PM-002",
-            "Asset": "BL-02",
-            "Task": "Blower Service",
-            "Maintenance Type": "Preventive Maintenance",
-            "Frequency": "Quarterly",
-            "Next Due Date": "24 Sep 2026",
-            "Assigned Technician": "Technician B",
-            "Status": "Planned"
-        },
-        {
-            "PM ID": "PM-003",
-            "Asset": "RO-P03",
-            "Task": "Pump Service",
-            "Maintenance Type": "Preventive Maintenance",
-            "Frequency": "Monthly",
-            "Next Due Date": "25 Sep 2026",
-            "Assigned Technician": "Technician A",
-            "Status": "Planned"
-        }
-    ]
+    if "pm_schedules" not in st.session_state:
+        st.session_state.pm_schedules = [
+            {
+                "PM ID": "PM-001",
+                "Asset": "P-101",
+                "Task": "Pump Inspection",
+                "Maintenance Type": "Preventive Maintenance",
+                "Frequency": "Monthly",
+                "Next Due Date": "22 Sep 2026",
+                "Assigned Technician": "Technician A",
+                "Status": "Due"
+            },
+            {
+                "PM ID": "PM-002",
+                "Asset": "BL-02",
+                "Task": "Blower Service",
+                "Maintenance Type": "Preventive Maintenance",
+                "Frequency": "Quarterly",
+                "Next Due Date": "24 Sep 2026",
+                "Assigned Technician": "Technician B",
+                "Status": "Planned"
+            },
+            {
+                "PM ID": "PM-003",
+                "Asset": "RO-P03",
+                "Task": "Pump Service",
+                "Maintenance Type": "Preventive Maintenance",
+                "Frequency": "Monthly",
+                "Next Due Date": "25 Sep 2026",
+                "Assigned Technician": "Technician A",
+                "Status": "Planned"
+            }
+        ]
 
+    # --------------------------------
+    # DISPLAY PM SCHEDULE
+    # --------------------------------
     st.subheader("Upcoming Preventive Maintenance")
-    st.dataframe(pm_data, use_container_width=True)
+
+    st.dataframe(
+        st.session_state.pm_schedules,
+        use_container_width=True
+    )
 
     st.divider()
 
@@ -343,13 +351,33 @@ elif page == "PM Schedule":
         submitted = st.form_submit_button("Create PM Schedule")
 
         if submitted:
+
             if pm_id and task:
+
+                asset_id = asset.split(" - ")[0]
+
+                new_pm = {
+                    "PM ID": pm_id,
+                    "Asset": asset_id,
+                    "Task": task,
+                    "Maintenance Type": maintenance_type,
+                    "Frequency": frequency,
+                    "Next Due Date": start_date.strftime("%d %b %Y"),
+                    "Assigned Technician": technician,
+                    "Status": "Planned"
+                }
+
+                st.session_state.pm_schedules.append(new_pm)
+
                 st.success(
                     f"PM Schedule {pm_id} for {asset} created successfully."
                 )
+
+                st.rerun()
+
             else:
                 st.error("PM Schedule ID and PM Task Name are required.")
-
+                
 elif page == "Work Orders":
     st.title("Work Orders")
     st.caption("Manage and track maintenance work orders.")
