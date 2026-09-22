@@ -836,19 +836,39 @@ elif page == "Procurement":
     # -----------------------------
     # PROCUREMENT SUMMARY
     # -----------------------------
+    new_requests = sum(
+        1 for req in st.session_state.procurement_requests
+        if req["Status"] == "New"
+    )
+    
+    pending_approval = sum(
+        1 for req in st.session_state.procurement_requests
+        if req["Status"] in ["Pending Engineer Review", "Pending Approval"]
+    )
+    
+    issued_requests = sum(
+        1 for req in st.session_state.procurement_requests
+        if req["Status"] in ["PR / IER Issued", "PO Issued"]
+    )
+    
+    completed_requests = sum(
+        1 for req in st.session_state.procurement_requests
+        if req["Status"] == "Completed"
+    )
+    
     col1, col2, col3, col4 = st.columns(4)
-
+    
     with col1:
-        st.metric("New Requests", 2)
-
+        st.metric("New Requests", new_requests)
+    
     with col2:
-        st.metric("Pending Approval", 1)
-
+        st.metric("Pending Approval", pending_approval)
+    
     with col3:
-        st.metric("PR / IER Issued", 3)
-
+        st.metric("PR / IER Issued", issued_requests)
+    
     with col4:
-        st.metric("Completed", 5)
+        st.metric("Completed", completed_requests)
 
     st.divider()
 
