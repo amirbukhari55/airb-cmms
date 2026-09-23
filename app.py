@@ -676,6 +676,16 @@ elif page == "Work Orders":
         if submitted:
 
             if wo_id and work_description:
+                existing_wo = any(
+                    wo["WO ID"] == wo_id
+                    for wo in st.session_state.work_orders
+                )
+
+                if existing_wo:
+                    st.error(
+                        f"Work Order {wo_id} already exists. Please use a unique Work Order ID."
+                    )
+                    st.stop()
 
                 asset_id = asset.split(" - ")[0]
 
