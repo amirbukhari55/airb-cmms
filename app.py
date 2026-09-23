@@ -598,6 +598,82 @@ elif page == "Work Orders":
     st.divider()
 
     # --------------------------------
+    # UPDATE WORK ORDER STATUS
+    # --------------------------------
+    st.subheader("Update Work Order Status")
+
+    if active_work_orders:
+
+        wo_options = [
+            wo["WO ID"] for wo in active_work_orders
+        ]
+
+        selected_wo_id = st.selectbox(
+            "Select Work Order",
+            wo_options
+        )
+
+        selected_wo = next(
+            wo for wo in st.session_state.work_orders
+            if wo["WO ID"] == selected_wo_id
+        )
+
+        with st.container(border=True):
+
+            st.write(
+                f"**Asset:** {selected_wo['Asset']}"
+            )
+
+            st.write(
+                f"**Work:** {selected_wo['Work']}"
+            )
+
+            new_status = st.selectbox(
+                "New Status",
+                [
+                    "Assigned",
+                    "In Progress",
+                    "Pending Engineer Review",
+                    "Completed",
+                    "Closed"
+                ],
+                key="update_wo_status"
+            )
+
+            actual_hours = st.number_input(
+                "Actual Maintenance Hours",
+                min_value=0.0,
+                step=0.5
+            )
+
+            maintenance_remarks = st.text_area(
+                "Maintenance Remarks",
+                placeholder="Enter work performed, findings or completion remarks..."
+            )
+
+            update_wo = st.button(
+                "Update Work Order",
+                type="primary"
+            )
+
+            if update_wo:
+
+                selected_wo["Status"] = new_status
+                selected_wo["Actual Hours"] = actual_hours
+                selected_wo["Maintenance Remarks"] = maintenance_remarks
+
+                st.success(
+                    f"Work Order {selected_wo_id} updated to {new_status}."
+                )
+
+                st.rerun()
+
+    else:
+        st.info("No active work orders available.")
+
+    st.divider()
+
+    # --------------------------------
     # CREATE WORK ORDER
     # --------------------------------
     st.subheader("Create Work Order")
