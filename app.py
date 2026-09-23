@@ -662,6 +662,31 @@ elif page == "Work Orders":
                 selected_wo["Actual Hours"] = actual_hours
                 selected_wo["Maintenance Remarks"] = maintenance_remarks
 
+                # Add completed WO to Maintenance History
+                if new_status in ["Completed", "Closed"]:
+
+                    already_in_history = any(
+                        record["WO ID"] == selected_wo_id
+                        for record in st.session_state.maintenance_history
+                    )
+
+                    if not already_in_history:
+
+                        history_record = {
+                            "Date": pd.Timestamp.today().strftime("%d %b %Y"),
+                            "WO ID": selected_wo_id,
+                            "Asset": selected_wo["Asset"],
+                            "Maintenance Type": selected_wo["Type"],
+                            "Work Description": selected_wo["Work"],
+                            "Technician": selected_wo["Assigned To"],
+                            "Downtime (hr)": actual_hours,
+                            "Status": new_status
+                        }
+
+                        st.session_state.maintenance_history.append(
+                            history_record
+                        )
+
                 st.success(
                     f"Work Order {selected_wo_id} updated to {new_status}."
                 )
