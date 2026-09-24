@@ -2,6 +2,45 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client
 
+# -----------------------------
+# ADMIN LOGIN
+# -----------------------------
+
+import hmac
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+
+    st.title("AIRB CMMS Login")
+    st.caption("Authorised access only")
+
+    with st.form("login_form"):
+        password = st.text_input(
+            "Administrator Password",
+            type="password"
+        )
+
+        login_clicked = st.form_submit_button("Login")
+
+        if login_clicked:
+            if hmac.compare_digest(
+                password,
+                st.secrets["auth"]["admin_password"]
+            ):
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect password.")
+
+    st.stop()
+
+with st.sidebar:
+    if st.button("Logout"):
+        st.session_state.authenticated = False
+        st.rerun()
+
 
 # -----------------------------
 # SUPABASE CONNECTION TEST
