@@ -872,6 +872,7 @@ elif page == "PM Schedule":
             new_wo = {
                 "WO ID": f"WO-{pm_id}",
                 "PM Schedule ID": pm_id,
+                "Site ID": pm.get("Site ID"),
                 "Asset": pm["Asset"],
                 "Work": pm["Task"],
                 "Type": pm["Maintenance Type"],
