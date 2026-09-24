@@ -812,13 +812,33 @@ elif page == "PM Schedule":
 
     st.session_state.pm_schedules = list(unique_pm.values())
     
+
+    # --------------------------------
+    # FILTER PM SCHEDULE BY SITE
+    # --------------------------------
+    if selected_site_id == "ALL":
+        visible_pm = st.session_state.pm_schedules
+    else:
+        site_asset_ids = {
+            asset["Asset ID"]
+            for asset in st.session_state.assets
+            if asset.get("Site ID") == selected_site_id
+        }
+
+        visible_pm = [
+            pm for pm in st.session_state.pm_schedules
+            if pm.get("Asset") in site_asset_ids
+        ]
+
     # --------------------------------
     # DISPLAY PM SCHEDULE
     # --------------------------------
     st.subheader("Upcoming Preventive Maintenance")
 
+    st.caption(f"Displaying {len(visible_pm)} PM schedules")
+
     st.dataframe(
-        st.session_state.pm_schedules,
+        visible_pm,
         use_container_width=True,
         hide_index=True
     )
@@ -831,7 +851,7 @@ elif page == "PM Schedule":
         generated_count = 0
         today = pd.Timestamp.today().date()
 
-        for pm in st.session_state.pm_schedules:
+        for pm in visible_pm:
 
             if pm.get("Status") not in ["Active", "Due", "Planned"]:
                 continue
@@ -864,7 +884,6 @@ elif page == "PM Schedule":
             st.session_state.work_orders.append(new_wo)
             generated_count += 1
 
-        # Display ONE result after processing all schedules.
         if generated_count > 0:
             st.success(
                 f"{generated_count} preventive maintenance work order(s) generated."
