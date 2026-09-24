@@ -1579,241 +1579,266 @@ elif page == "Work Orders":
                 st.error(
                     "Work Order ID and Work Description are required."
                 )
+
 elif page == "Corrective Maintenance":
     st.title("Corrective Maintenance")
     st.caption("Record breakdowns, corrective actions and maintenance findings.")
 
-    # -----------------------------
+    # --------------------------------
+    # FILTER RECORDS BY SELECTED SITE
+    # --------------------------------
+    if selected_site_id == "ALL":
+        site_work_orders = st.session_state.work_orders
+        site_cm_records = st.session_state.corrective_maintenance
+    else:
+        site_work_orders = [
+            wo for wo in st.session_state.work_orders
+            if wo.get("Site ID") == selected_site_id
+        ]
+
+        site_cm_records = [
+            cm for cm in st.session_state.corrective_maintenance
+            if cm.get("Site ID") == selected_site_id
+        ]
+
+    # --------------------------------
     # OPEN CORRECTIVE MAINTENANCE
-    # -----------------------------
-  
+    # --------------------------------
     st.subheader("Open Corrective Maintenance")
 
     cm_display = []
 
-    for cm in st.session_state.corrective_maintenance:
-
+    for cm in site_cm_records:
         cm_record = cm.copy()
 
-        if cm["Procurement"] == "Required":
-
+        if cm.get("Procurement") == "Required":
             related_requests = [
                 req
                 for req in st.session_state.procurement_requests
-                if req["CM ID"] == cm["CM ID"]
+                if req.get("CM ID") == cm.get("CM ID")
+                and req.get("Site ID") == cm.get("Site ID")
             ]
 
             if related_requests:
                 cm_record["Procurement Status"] = related_requests[-1]["Status"]
             else:
                 cm_record["Procurement Status"] = "Pending Request"
-
         else:
             cm_record["Procurement Status"] = "Not Required"
 
         cm_display.append(cm_record)
 
-    st.dataframe(
-        cm_display,
-        use_container_width=True
-    )
+    if cm_display:
+        st.dataframe(cm_display, use_container_width=True)
+    else:
+        st.info("No corrective maintenance records for the selected site.")
 
     st.divider()
 
-    # -----------------------------
+    # --------------------------------
     # CORRECTIVE MAINTENANCE FORM
-    # -----------------------------
+    # --------------------------------
     st.subheader("Record Corrective Maintenance")
 
-    
-    
-    with st.container(border=True):
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            
-            cm_id = st.text_input("CM ID")
-
-            # Receive WO information from Work Orders page
-            cm_prefill = st.session_state.get("cm_from_wo", {})
-
-            wo_options = [
-                wo["WO ID"]
-                for wo in st.session_state.work_orders
-                if wo["Status"] not in ["Completed", "Closed"]
-            ]
-
-            # Automatically select the originating WO
-            prefill_wo_id = cm_prefill.get("WO ID")
-
-            default_index = (
-                wo_options.index(prefill_wo_id)
-                if prefill_wo_id in wo_options
-                else 0
-            )
-
-            wo_id = st.selectbox(
-                "Related Work Order",
-                wo_options,
-                index=default_index,
-                key="cm_related_wo"
-            )
-
-            selected_wo = next(
-                wo for wo in st.session_state.work_orders
-                if wo["WO ID"] == wo_id
-            )
-
-            asset = selected_wo["Asset"]
-
-            st.text_input(
-                "Asset",
-                value=asset,
-                disabled=True
-            )
-
-            priority = st.selectbox(
-                "Priority",
-                ["Low", "Normal", "High", "Urgent"],
-                index=1
-            )
-
-        with col2:
-            failure_type = st.selectbox(
-                "Failure Type",
-                [
-                    "Mechanical",
-                    "Electrical",
-                    "Instrumentation",
-                    "Process",
-                    "Control / PLC",
-                    "Other"
-                ]
-            )
-
-            downtime = st.number_input(
-                "Downtime (Hours)",
-                min_value=0.0,
-                step=0.5
-            )
-
-            procurement_required = st.selectbox(
-                "Procurement Required?",
-                ["No", "Yes"]
-            )
-            
-            status = st.selectbox(
-                "Status",
-                [
-                    "Open",
-                    "In Progress",
-                    "Pending Engineer Review",
-                    "Completed",
-                    "Closed"
-                ]
-            )
-
-        problem = st.text_area(
-            "Problem / Failure Description",
-            placeholder="Describe the problem or failure..."
+    if selected_site_id == "ALL":
+        st.info(
+            "Select an operational site from the sidebar "
+            "before recording corrective maintenance."
         )
 
-        action = st.text_area(
-            "Corrective Action",
-            placeholder="Describe troubleshooting, repair or corrective action..."
-        )
+    else:
+        wo_options = [
+            wo["WO ID"]
+            for wo in site_work_orders
+            if wo.get("Status") not in ["Completed", "Closed"]
+        ]
 
-        if procurement_required == "Yes":
+        if not wo_options:
             st.warning(
-                "Procurement required. A PR / IER request will be initiated."
+                "No active Work Orders are available under this site. "
+                "Create a Work Order first."
             )
 
-            item_required = st.text_input(
-                "Material / Service Required"
-            )
+        else:
+            with st.container(border=True):
+                col1, col2 = st.columns(2)
 
-            justification = st.text_area(
-                "Procurement Justification"
-            )
+                with col1:
+                    cm_id = st.text_input("CM ID")
 
-        submitted = st.button(
-            "Submit Corrective Maintenance",
-            type="primary"
-        )
+                    # Receive WO information from Work Orders page
+                    cm_prefill = st.session_state.get("cm_from_wo", {})
+                    prefill_wo_id = cm_prefill.get("WO ID")
 
-        if submitted:
-            if cm_id and problem:
-
-                # Prevent duplicate CM ID
-                cm_exists = any(
-                    cm["CM ID"] == cm_id
-                    for cm in st.session_state.corrective_maintenance
-                )
-
-                if cm_exists:
-                    st.error(
-                        f"Corrective Maintenance {cm_id} already exists."
+                    default_index = (
+                        wo_options.index(prefill_wo_id)
+                        if prefill_wo_id in wo_options
+                        else 0
                     )
 
-                else:
-                    new_cm = {
-                        "CM ID": cm_id,
-                        "WO ID": wo_id,
-                        "Asset": asset,
-                        "Problem": problem,
-                        "Failure Type": failure_type,
-                        "Priority": priority,
-                        "Downtime": downtime,
-                        "Procurement": (
-                            "Required"
-                            if procurement_required == "Yes"
-                            else "Not Required"
-                        ),
-                        "Status": status
-                    }
+                    wo_id = st.selectbox(
+                        "Related Work Order",
+                        wo_options,
+                        index=default_index,
+                        key="cm_related_wo"
+                    )
 
-                    st.session_state.corrective_maintenance.append(new_cm)
+                    selected_wo = next(
+                        wo for wo in site_work_orders
+                        if wo["WO ID"] == wo_id
+                    )
 
-                    # Automatically create procurement request
-                    if procurement_required == "Yes":
+                    asset = selected_wo["Asset"]
 
-                        request_id = f"MPR-{cm_id}"
+                    st.text_input(
+                        "Asset",
+                        value=asset,
+                        disabled=True
+                    )
 
-                        procurement_exists = any(
-                            request["CM ID"] == cm_id
-                            for request in st.session_state.procurement_requests
+                    priority = st.selectbox(
+                        "Priority",
+                        ["Low", "Normal", "High", "Urgent"],
+                        index=1
+                    )
+
+                with col2:
+                    failure_type = st.selectbox(
+                        "Failure Type",
+                        [
+                            "Mechanical",
+                            "Electrical",
+                            "Instrumentation",
+                            "Process",
+                            "Control / PLC",
+                            "Other"
+                        ]
+                    )
+
+                    downtime = st.number_input(
+                        "Downtime (Hours)",
+                        min_value=0.0,
+                        step=0.5
+                    )
+
+                    procurement_required = st.selectbox(
+                        "Procurement Required?",
+                        ["No", "Yes"]
+                    )
+
+                    status = st.selectbox(
+                        "Status",
+                        [
+                            "Open",
+                            "In Progress",
+                            "Pending Engineer Review",
+                            "Completed",
+                            "Closed"
+                        ]
+                    )
+
+                problem = st.text_area(
+                    "Problem / Failure Description",
+                    placeholder="Describe the problem or failure..."
+                )
+
+                action = st.text_area(
+                    "Corrective Action",
+                    placeholder="Describe troubleshooting, repair or corrective action..."
+                )
+
+                if procurement_required == "Yes":
+                    st.warning(
+                        "Procurement required. A PR / IER request will be initiated."
+                    )
+
+                    item_required = st.text_input(
+                        "Material / Service Required"
+                    )
+
+                    justification = st.text_area(
+                        "Procurement Justification"
+                    )
+
+                submitted = st.button(
+                    "Submit Corrective Maintenance",
+                    type="primary"
+                )
+
+                if submitted:
+                    clean_cm_id = cm_id.strip()
+
+                    if not clean_cm_id or not problem.strip():
+                        st.error(
+                            "CM ID and Problem / Failure Description are required."
                         )
 
-                        if not procurement_exists:
+                    elif any(
+                        cm.get("CM ID") == clean_cm_id
+                        for cm in st.session_state.corrective_maintenance
+                    ):
+                        st.error(
+                            f"Corrective Maintenance {clean_cm_id} already exists."
+                        )
 
-                            new_procurement = {
-                                "Request ID": request_id,
-                                "CM ID": cm_id,
-                                "WO ID": wo_id,
-                                "Asset": asset,
-                                "Requirement": item_required,
-                                "Priority": priority,
-                                "Document": "Pending",
-                                "Status": "New"
-                            }
+                    else:
+                        new_cm = {
+                            "CM ID": clean_cm_id,
+                            "Site ID": selected_site_id,
+                            "WO ID": wo_id,
+                            "Asset": asset,
+                            "Problem": problem.strip(),
+                            "Corrective Action": action.strip(),
+                            "Failure Type": failure_type,
+                            "Priority": priority,
+                            "Downtime": downtime,
+                            "Procurement": (
+                                "Required"
+                                if procurement_required == "Yes"
+                                else "Not Required"
+                            ),
+                            "Status": status
+                        }
 
-                            st.session_state.procurement_requests.append(
-                                new_procurement
+                        st.session_state.corrective_maintenance.append(new_cm)
+
+                        # Automatically create procurement request
+                        if procurement_required == "Yes":
+                            request_id = f"MPR-{clean_cm_id}"
+
+                            procurement_exists = any(
+                                request.get("CM ID") == clean_cm_id
+                                for request in st.session_state.procurement_requests
                             )
 
-                    st.success(
-                        f"Corrective Maintenance {cm_id} submitted successfully."
-                    )
-                    
-                    st.session_state.pop("cm_from_wo", None)
+                            if not procurement_exists:
+                                new_procurement = {
+                                    "Request ID": request_id,
+                                    "Site ID": selected_site_id,
+                                    "CM ID": clean_cm_id,
+                                    "WO ID": wo_id,
+                                    "Asset": asset,
+                                    "Requirement": item_required.strip(),
+                                    "Justification": justification.strip(),
+                                    "Priority": priority,
+                                    "Document": "Pending",
+                                    "Status": "New"
+                                }
 
-                    st.rerun()
+                                st.session_state.procurement_requests.append(
+                                    new_procurement
+                                )
 
-            else:
-                st.error(
-                    "CM ID and Problem / Failure Description are required."
-                )
+                        st.session_state.cm_success_message = (
+                            f"Corrective Maintenance {clean_cm_id} "
+                            f"submitted successfully."
+                        )
+
+                        st.session_state.pop("cm_from_wo", None)
+                        st.rerun()
+
+    if "cm_success_message" in st.session_state:
+        st.success(st.session_state.pop("cm_success_message"))
 
 elif page == "Procurement":
     st.title("Maintenance Procurement")
