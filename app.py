@@ -476,7 +476,15 @@ elif page == "PM Schedule":
         pm for pm in st.session_state.pm_schedules
         if pm.get("PM Schedule ID")
     ]
+    
+    # Remove duplicate PM Schedule IDs, keeping the latest record.
+    unique_pm = {}
 
+    for pm in st.session_state.pm_schedules:
+        unique_pm[pm["PM Schedule ID"]] = pm
+
+    st.session_state.pm_schedules = list(unique_pm.values())
+    
     # --------------------------------
     # DISPLAY PM SCHEDULE
     # --------------------------------
