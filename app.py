@@ -766,14 +766,13 @@ elif page == "Work Orders":
 
                 st.rerun()
             
+            
             new_status = st.selectbox(
                 "New Status",
                 [
                     "Assigned",
                     "In Progress",
-                    "Pending Engineer Review",
-                    "Completed",
-                    "Closed"
+                    "Pending Engineer Review"
                 ],
                 key="update_wo_status"
             )
@@ -801,7 +800,7 @@ elif page == "Work Orders":
                 selected_wo["Maintenance Remarks"] = maintenance_remarks
 
                 # Add completed WO to Maintenance History
-                if new_status in ["Completed", "Closed"]:
+                if new_status in "Closed":
 
                     already_in_history = any(
                         record["WO ID"] == selected_wo_id
