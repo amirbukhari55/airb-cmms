@@ -1049,10 +1049,10 @@ else:
                         st.rerun()
 
             
-    if "pm_success_message" in st.session_state:
-        st.success(
-            st.session_state.pop("pm_success_message")
-        )
+        if "pm_success_message" in st.session_state:
+            st.success(
+                st.session_state.pop("pm_success_message")
+            )
                 
 elif page == "Work Orders":
     st.title("Work Orders")
