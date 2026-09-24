@@ -1238,6 +1238,68 @@ elif page == "Procurement":
         st.info("No active procurement requests available.")
 
     st.divider()
+
+    
+    # -----------------------------
+    # PROCUREMENT DOCUMENT UPLOAD
+    # -----------------------------
+    st.subheader("Procurement Document Attachments")
+
+    with st.container(border=True):
+
+        document_request_id = st.selectbox(
+            "Select Procurement Request",
+            [
+                req["Request ID"]
+                for req in st.session_state.procurement_requests
+            ],
+            key="document_request_id"
+        )
+
+        document_type = st.selectbox(
+            "Document Type",
+            [
+                "PR / IER",
+                "Supplier Quotation",
+                "Purchase Order (PO)",
+                "Delivery Order (DO)",
+                "Invoice",
+                "Other Supporting Document"
+            ],
+            key="document_upload_type"
+        )
+
+        uploaded_file = st.file_uploader(
+            "Upload Document",
+            type=["pdf", "docx", "xlsx", "jpg", "jpeg", "png"],
+            key="procurement_file_upload"
+        )
+
+        if st.button("Save Attachment"):
+
+            if uploaded_file is not None:
+
+                new_document = {
+                    "Request ID": document_request_id,
+                    "Document Type": document_type,
+                    "Filename": uploaded_file.name,
+                    "File Content": uploaded_file.getvalue(),
+                    "Uploaded On": pd.Timestamp.today().strftime("%d %b %Y")
+                }
+
+                st.session_state.procurement_documents.append(
+                    new_document
+                )
+
+                st.success(
+                    f"{uploaded_file.name} attached to {document_request_id}."
+                )
+
+            else:
+                st.error("Please select a document to upload.")
+
+    st.divider()
+    
     # -----------------------------
     # PROCUREMENT REQUEST DETAILS
     # -----------------------------
