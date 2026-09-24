@@ -1298,6 +1298,60 @@ elif page == "Procurement":
             else:
                 st.error("Please select a document to upload.")
 
+    
+    # -----------------------------
+    # PROCUREMENT DOCUMENT REGISTER
+    # -----------------------------
+    st.subheader("Uploaded Procurement Documents")
+
+    saved_documents = [
+        doc
+        for doc in st.session_state.procurement_documents
+        if doc["Request ID"] == document_request_id
+    ]
+
+    if saved_documents:
+
+        document_table = [
+            {
+                "Document Type": doc["Document Type"],
+                "Filename": doc["Filename"],
+                "Uploaded On": doc["Uploaded On"]
+            }
+            for doc in saved_documents
+        ]
+
+        st.dataframe(
+            document_table,
+            use_container_width=True
+        )
+
+        selected_document_name = st.selectbox(
+            "Select Document to Download",
+            [
+                f"{i + 1}. {doc['Filename']}"
+                for i, doc in enumerate(saved_documents)
+            ],
+            key="download_procurement_document"
+        )
+
+        selected_index = int(
+            selected_document_name.split(".")[0]
+        ) - 1
+
+        selected_document = saved_documents[selected_index]
+
+        st.download_button(
+            "Download Selected Document",
+            data=selected_document["File Content"],
+            file_name=selected_document["Filename"],
+            mime="application/octet-stream",
+            key="download_procurement_attachment"
+        )
+
+    else:
+        st.info("No documents uploaded for this procurement request.")
+    
     st.divider()
     
     # -----------------------------
