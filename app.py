@@ -135,6 +135,9 @@ if "procurement_requests" not in st.session_state:
 
 if "procurement_documents" not in st.session_state:
     st.session_state.procurement_documents = []
+
+if "maintenance_documents" not in st.session_state:
+    st.session_state.maintenance_documents = []
     
 if "maintenance_history" not in st.session_state:
     st.session_state.maintenance_history = [
