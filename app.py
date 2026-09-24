@@ -1108,16 +1108,11 @@ elif page == "Work Orders":
                 ]
             )
 
+            
             status = st.selectbox(
                 "Status",
-                [
-                    "Open",
-                    "Assigned",
-                    "In Progress",
-                    "Pending Engineer Review",
-                    "Completed",
-                    "Closed"
-                ]
+                ["Assigned"],
+                help="New work orders start as Assigned. Technicians update their status after creation."
             )
 
             estimated_hours = st.number_input(
@@ -1162,20 +1157,14 @@ elif page == "Work Orders":
 
                 st.session_state.work_orders.append(new_work_order)
 
-                if status in ["Completed", "Closed"]:
-
-                    history_record = {
-                        "Date": pd.Timestamp.today().strftime("%d %b %Y"),
-                        "WO ID": wo_id,
-                        "Asset": asset_id,
-                        "Maintenance Type": maintenance_type,
-                        "Work Description": work_description,
-                        "Technician": technician,
-                        "Downtime (hr)": estimated_hours,
-                        "Status": status
-                    }
                 
-                    st.session_state.maintenance_history.append(history_record)
+                st.session_state.work_orders.append(new_work_order)
+
+                st.success(
+                    f"Work Order {wo_id} created successfully."
+                )
+
+                st.rerun()
 
                 st.success(
                     f"Work Order {wo_id} created successfully."
