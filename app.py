@@ -450,46 +450,32 @@ elif page == "Asset Register":
             else:
                 st.error("Asset ID and Asset Name are required.")
 
+
 elif page == "PM Schedule":
+
     st.title("Preventive Maintenance Schedule")
     st.caption("Plan, assign and monitor preventive maintenance activities.")
 
     # --------------------------------
-    # PM SCHEDULE DATABASE
+    # NORMALISE EXISTING PM RECORDS
     # --------------------------------
-    if "pm_schedules" not in st.session_state:
-        st.session_state.pm_schedules = [
-            {
-                "PM ID": "PM-001",
-                "Asset": "P-101",
-                "Task": "Pump Inspection",
-                "Maintenance Type": "Preventive Maintenance",
-                "Frequency": "Monthly",
-                "Next Due Date": "22 Sep 2026",
-                "Assigned Technician": "Technician A",
-                "Status": "Due"
-            },
-            {
-                "PM ID": "PM-002",
-                "Asset": "BL-02",
-                "Task": "Blower Service",
-                "Maintenance Type": "Preventive Maintenance",
-                "Frequency": "Quarterly",
-                "Next Due Date": "24 Sep 2026",
-                "Assigned Technician": "Technician B",
-                "Status": "Planned"
-            },
-            {
-                "PM ID": "PM-003",
-                "Asset": "RO-P03",
-                "Task": "Pump Service",
-                "Maintenance Type": "Preventive Maintenance",
-                "Frequency": "Monthly",
-                "Next Due Date": "25 Sep 2026",
-                "Assigned Technician": "Technician A",
-                "Status": "Planned"
-            }
-        ]
+    # Supports records created using the old "PM ID" field.
+
+    for pm in st.session_state.pm_schedules:
+
+        if not pm.get("PM Schedule ID") and pm.get("PM ID"):
+            pm["PM Schedule ID"] = pm["PM ID"]
+
+        pm.pop("PM ID", None)
+
+        # Store asset ID consistently, e.g. P-101.
+        pm["Asset"] = pm["Asset"].split(" - ")[0]
+
+    # Remove records with no valid ID.
+    st.session_state.pm_schedules = [
+        pm for pm in st.session_state.pm_schedules
+        if pm.get("PM Schedule ID")
+    ]
 
     # --------------------------------
     # DISPLAY PM SCHEDULE
@@ -498,51 +484,58 @@ elif page == "PM Schedule":
 
     st.dataframe(
         st.session_state.pm_schedules,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
+    # --------------------------------
+    # GENERATE WORK ORDERS
+    # --------------------------------
     if st.button("Generate Work Orders for Due PM"):
 
-
         generated_count = 0
+        today = pd.Timestamp.today().date()
 
         for pm in st.session_state.pm_schedules:
-            
-            if not pm.get("PM Schedule ID"):
+
+            if pm.get("Status") not in ["Active", "Due", "Planned"]:
                 continue
 
-            if pd.to_datetime(pm["Next Due Date"]).date() <= pd.Timestamp.today().date():
+            if pd.to_datetime(pm["Next Due Date"]).date() > today:
+                continue
 
-                existing_wo = any(
-                    wo.get("PM Schedule ID") == pm.get("PM Schedule ID")
-                    for wo in st.session_state.work_orders
-                )
+            pm_id = pm["PM Schedule ID"]
 
-                if not existing_wo:
-        
-                    new_wo = {
-                        "WO ID": f"WO-{pm['PM Schedule ID']}",
-                        "PM Schedule ID": pm["PM Schedule ID"],
-                        "Asset": pm["Asset"],
-                        "Work": "Scheduled Preventive Maintenance",
-                        "Type": "Preventive Maintenance",
-                        "Priority": "Normal",
-                        "Assigned To": pm["Assigned Technician"],
-                        "Status": "Assigned",
-                        "Estimated Hours": 1.0
-                    }
+            existing_wo = any(
+                wo.get("PM Schedule ID") == pm_id
+                for wo in st.session_state.work_orders
+            )
 
-                    st.session_state.work_orders.append(new_wo)
-                    generated_count += 1
+            if existing_wo:
+                continue
 
-                if generated_count > 0:
-                    st.success(
-                        f"{generated_count} preventive maintenance work order(s) generated."
-                    )
-                else:
-                    st.info(
-                        "No new due PM work orders to generate."
-                    )
+            new_wo = {
+                "WO ID": f"WO-{pm_id}",
+                "PM Schedule ID": pm_id,
+                "Asset": pm["Asset"],
+                "Work": pm["Task"],
+                "Type": pm["Maintenance Type"],
+                "Priority": "Normal",
+                "Assigned To": pm["Assigned Technician"],
+                "Status": "Assigned",
+                "Estimated Hours": pm.get("Estimated Hours", 1.0)
+            }
+
+            st.session_state.work_orders.append(new_wo)
+            generated_count += 1
+
+        # Display ONE result after processing all schedules.
+        if generated_count > 0:
+            st.success(
+                f"{generated_count} preventive maintenance work order(s) generated."
+            )
+        else:
+            st.info("No new due PM work orders to generate.")
 
     st.divider()
 
@@ -556,6 +549,7 @@ elif page == "PM Schedule":
         col1, col2 = st.columns(2)
 
         with col1:
+
             pm_id = st.text_input("PM Schedule ID")
 
             asset_options = [
@@ -564,10 +558,7 @@ elif page == "PM Schedule":
                 if item["Status"] == "Active"
             ]
 
-            asset = st.selectbox(
-                "Asset",
-                asset_options
-            )
+            asset = st.selectbox("Asset", asset_options)
 
             task = st.text_input("PM Task Name")
 
@@ -582,6 +573,7 @@ elif page == "PM Schedule":
             )
 
         with col2:
+
             frequency = st.selectbox(
                 "Frequency",
                 [
@@ -620,38 +612,45 @@ elif page == "PM Schedule":
 
         if submitted:
 
-            if pm_id and task:
-                
-                if any(
-                    pm.get("PM Schedule ID") == pm_id.strip()
-                    for pm in st.session_state.pm_schedules
-                ):
-                    st.error("This PM Schedule ID already exists.")
-                    st.stop()
+            clean_pm_id = pm_id.strip()
+
+            if not clean_pm_id or not task.strip():
+
+                st.error(
+                    "PM Schedule ID and PM Task Name are required."
+                )
+
+            elif any(
+                pm.get("PM Schedule ID") == clean_pm_id
+                for pm in st.session_state.pm_schedules
+            ):
+
+                st.error("This PM Schedule ID already exists.")
+
+            else:
 
                 asset_id = asset.split(" - ")[0]
 
                 new_pm = {
-                    "PM Schedule ID": pm_id.strip(),
-                    "Asset": asset,
-                    "Task": task,
+                    "PM Schedule ID": clean_pm_id,
+                    "Asset": asset_id,
+                    "Task": task.strip(),
                     "Maintenance Type": maintenance_type,
                     "Frequency": frequency,
                     "Next Due Date": start_date.strftime("%Y-%m-%d"),
                     "Assigned Technician": technician,
+                    "Estimated Hours": duration,
+                    "Instructions": instructions,
                     "Status": "Active"
                 }
 
                 st.session_state.pm_schedules.append(new_pm)
 
                 st.success(
-                    f"PM Schedule {pm_id} for {asset} created successfully."
+                    f"PM Schedule {clean_pm_id} created successfully."
                 )
 
                 st.rerun()
-
-            else:
-                st.error("PM Schedule ID and PM Task Name are required.")
                 
 elif page == "Work Orders":
     st.title("Work Orders")
