@@ -872,7 +872,11 @@ elif page == "Corrective Maintenance":
         col1, col2 = st.columns(2)
 
         with col1:
+            
             cm_id = st.text_input("CM ID")
+
+            # Receive WO information from Work Orders page
+            cm_prefill = st.session_state.get("cm_from_wo", {})
 
             wo_options = [
                 wo["WO ID"]
@@ -880,9 +884,20 @@ elif page == "Corrective Maintenance":
                 if wo["Status"] not in ["Completed", "Closed"]
             ]
 
+            # Automatically select the originating WO
+            prefill_wo_id = cm_prefill.get("WO ID")
+
+            default_index = (
+                wo_options.index(prefill_wo_id)
+                if prefill_wo_id in wo_options
+                else 0
+            )
+
             wo_id = st.selectbox(
                 "Related Work Order",
-                wo_options
+                wo_options,
+                index=default_index,
+                key="cm_related_wo"
             )
 
             selected_wo = next(
@@ -1030,6 +1045,8 @@ elif page == "Corrective Maintenance":
                     st.success(
                         f"Corrective Maintenance {cm_id} submitted successfully."
                     )
+                    
+                            st.session_state.pop("cm_from_wo", None)
 
                     st.rerun()
 
