@@ -718,7 +718,7 @@ elif page == "Site Master":
                 }
 
                 try:
-                    supabase.table("sites").insert({
+                    result = supabase.table("sites").insert({
                         "site_id": clean_site_id,
                         "site_name": site_name.strip(),
                         "site_data": {
@@ -726,6 +726,14 @@ elif page == "Site Master":
                             "Plant Type": plant_type,
                             "Status": status
                         }
+                    }).execute()
+                    
+                    if not result.data:
+                        st.error(
+                            "Supabase did not return an inserted record. "
+                            "Check database permissions and RLS policies."
+                        )
+    st.stop()
                     }).execute()
 
                     st.session_state.sites.append(new_site)
