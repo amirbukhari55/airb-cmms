@@ -171,11 +171,15 @@ st.set_page_config(
     layout="wide"
 )
 
+
 # -----------------------------
 # SIDEBAR
 # -----------------------------
 st.sidebar.title("🔧 AIRB CMMS")
 st.sidebar.caption("Computerized Maintenance Management System")
+
+if "page" not in st.session_state:
+    st.session_state.page = "Dashboard"
 
 page = st.sidebar.radio(
     "Navigation",
@@ -187,7 +191,8 @@ page = st.sidebar.radio(
         "Corrective Maintenance",
         "Procurement",
         "Maintenance History"
-    ]
+    ],
+    key="page"
 )
 
 # -----------------------------
