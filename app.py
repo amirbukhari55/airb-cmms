@@ -1157,7 +1157,7 @@ elif page == "Work Orders":
             key="maintenance_file_upload"
         )
 
-         if st.button(
+        if st.button(
             "Save Maintenance Attachment",
             disabled=not document_wo_options
         ):
