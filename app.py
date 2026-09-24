@@ -894,21 +894,19 @@ elif page == "PM Schedule":
     st.divider()
 
 
+    
     # --------------------------------
     # CREATE PM SCHEDULE
     # --------------------------------
     st.subheader("Create PM Schedule")
 
-    # PM schedules must belong to a specific operational site.
     if selected_site_id == "ALL":
-
         st.info(
             "Select an operational site from the sidebar "
             "before creating a PM schedule."
         )
 
     else:
-
         site_assets = [
             item
             for item in st.session_state.assets
@@ -921,32 +919,30 @@ elif page == "PM Schedule":
             for item in site_assets
         }
 
-site_name = next(
-    (
-        site["Site Name"]
-        for site in st.session_state.sites
-        if site["Site ID"] == selected_site_id
-    ),
-    selected_site_id
-)
+        site_name = next(
+            (
+                site["Site Name"]
+                for site in st.session_state.sites
+                if site["Site ID"] == selected_site_id
+            ),
+            selected_site_id
+        )
 
-st.info(f"Creating PM schedule under: {selected_site_id} - {site_name}")
+        st.info(
+            f"Creating PM schedule under: {selected_site_id} - {site_name}"
+        )
 
-if not asset_lookup:
+        if not asset_lookup:
+            st.warning(
+                "No active assets registered under this site. "
+                "Register or import assets first."
+            )
 
-    st.warning(
-        "No active assets registered under this site. "
-        "Register or import assets first."
-    )
-
-else:
-
-    with st.form("pm_schedule_form"):
-
+        else:
+            with st.form("pm_schedule_form"):
                 col1, col2 = st.columns(2)
 
                 with col1:
-
                     pm_id = st.text_input("PM Schedule ID")
 
                     asset = st.selectbox(
@@ -967,7 +963,6 @@ else:
                     )
 
                 with col2:
-
                     frequency = st.selectbox(
                         "Frequency",
                         [
@@ -1007,11 +1002,9 @@ else:
                 )
 
                 if submitted:
-
                     clean_pm_id = pm_id.strip()
 
                     if not clean_pm_id or not task.strip():
-
                         st.error(
                             "PM Schedule ID and PM Task Name are required."
                         )
@@ -1020,11 +1013,9 @@ else:
                         pm.get("PM Schedule ID") == clean_pm_id
                         for pm in st.session_state.pm_schedules
                     ):
-
                         st.error("This PM Schedule ID already exists.")
 
                     else:
-
                         new_pm = {
                             "PM Schedule ID": clean_pm_id,
                             "Site ID": selected_site_id,
@@ -1048,11 +1039,9 @@ else:
 
                         st.rerun()
 
-            
-        if "pm_success_message" in st.session_state:
-            st.success(
-                st.session_state.pop("pm_success_message")
-            )
+    if "pm_success_message" in st.session_state:
+        st.success(st.session_state.pop("pm_success_message"))
+
                 
 elif page == "Work Orders":
     st.title("Work Orders")
