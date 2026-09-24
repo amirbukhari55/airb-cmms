@@ -834,6 +834,121 @@ elif page == "Work Orders":
         st.info("No active work orders available.")
 
     st.divider()
+    
+    # -----------------------------
+    # ENGINEER REVIEW AND APPROVAL
+    # -----------------------------
+    st.subheader("Engineer Review & Approval")
+
+    pending_review_wos = [
+        wo
+        for wo in st.session_state.work_orders
+        if wo["Status"] == "Pending Engineer Review"
+    ]
+
+    if pending_review_wos:
+
+        review_wo_id = st.selectbox(
+            "Select Work Order for Review",
+            [wo["WO ID"] for wo in pending_review_wos],
+            key="engineer_review_wo"
+        )
+
+        review_wo = next(
+            wo for wo in pending_review_wos
+            if wo["WO ID"] == review_wo_id
+        )
+
+        with st.container(border=True):
+
+            st.write(f"**Asset:** {review_wo['Asset']}")
+            st.write(f"**Work:** {review_wo['Work']}")
+            st.write(f"**Technician:** {review_wo['Assigned To']}")
+
+            st.write(
+                f"**Actual Hours:** {review_wo.get('Actual Hours', 0)}"
+            )
+
+            st.write(
+                f"**Maintenance Remarks:** {review_wo.get('Maintenance Remarks', '')}"
+            )
+
+            engineer_remarks = st.text_area(
+                "Engineer Review Remarks",
+                key="engineer_review_remarks"
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                approve_wo = st.button(
+                    "Approve & Close Work Order",
+                    type="primary"
+                )
+
+            with col2:
+                return_wo = st.button(
+                    "Return for Rectification"
+                )
+
+            if approve_wo:
+
+                review_wo["Status"] = "Closed"
+                review_wo["Engineer Remarks"] = engineer_remarks
+                review_wo["Review Date"] = pd.Timestamp.today().strftime(
+                    "%d %b %Y"
+                )
+
+                already_in_history = any(
+                    record["WO ID"] == review_wo_id
+                    for record in st.session_state.maintenance_history
+                )
+
+                if not already_in_history:
+
+                    history_record = {
+                        "Date": pd.Timestamp.today().strftime("%d %b %Y"),
+                        "WO ID": review_wo_id,
+                        "Asset": review_wo["Asset"],
+                        "Maintenance Type": review_wo["Type"],
+                        "Work Description": review_wo["Work"],
+                        "Technician": review_wo["Assigned To"],
+                        "Downtime (hr)": review_wo.get("Actual Hours", 0),
+                        "Status": "Closed"
+                    }
+
+                    st.session_state.maintenance_history.append(
+                        history_record
+                    )
+
+                st.success(
+                    f"Work Order {review_wo_id} approved and closed."
+                )
+
+                st.rerun()
+
+            if return_wo:
+
+                if engineer_remarks.strip():
+
+                    review_wo["Status"] = "In Progress"
+                    review_wo["Engineer Remarks"] = engineer_remarks
+
+                    st.success(
+                        f"Work Order {review_wo_id} returned for rectification."
+                    )
+
+                    st.rerun()
+
+                else:
+                    st.error(
+                        "Engineer remarks are required when returning a WO."
+                    )
+
+    else:
+        st.info("No work orders pending engineer review.")
+
+    st.divider()
 
     # --------------------------------
     # CREATE WORK ORDER
