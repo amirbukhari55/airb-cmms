@@ -618,18 +618,25 @@ elif page == "PM Schedule":
         if submitted:
 
             if pm_id and task:
+                
+                if any(
+                    pm.get("PM Schedule ID") == pm_id.strip()
+                    for pm in st.session_state.pm_schedules
+                ):
+                    st.error("This PM Schedule ID already exists.")
+                    st.stop()
 
                 asset_id = asset.split(" - ")[0]
 
                 new_pm = {
-                    "PM ID": pm_id,
-                    "Asset": asset_id,
+                    "PM Schedule ID": pm_id.strip(),
+                    "Asset": asset,
                     "Task": task,
                     "Maintenance Type": maintenance_type,
                     "Frequency": frequency,
-                    "Next Due Date": start_date.strftime("%d %b %Y"),
+                    "Next Due Date": start_date.strftime("%Y-%m-%d"),
                     "Assigned Technician": technician,
-                    "Status": "Planned"
+                    "Status": "Active"
                 }
 
                 st.session_state.pm_schedules.append(new_pm)
