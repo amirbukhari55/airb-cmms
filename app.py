@@ -181,6 +181,9 @@ st.sidebar.caption("Computerized Maintenance Management System")
 if "page" not in st.session_state:
     st.session_state.page = "Dashboard"
 
+if "navigate_to" in st.session_state:
+    st.session_state.page = st.session_state.pop("navigate_to")
+
 page = st.sidebar.radio(
     "Navigation",
     [
@@ -637,6 +640,7 @@ elif page == "Work Orders":
                 key="create_cm_from_wo"
             )
 
+            
             if create_cm:
                 st.session_state.cm_from_wo = {
                     "WO ID": selected_wo["WO ID"],
@@ -644,7 +648,7 @@ elif page == "Work Orders":
                     "Technician": selected_wo["Assigned To"]
                 }
 
-                st.session_state.page = "Corrective Maintenance"
+                st.session_state.navigate_to = "Corrective Maintenance"
 
                 st.rerun()
             
