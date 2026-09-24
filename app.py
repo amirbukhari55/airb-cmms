@@ -733,7 +733,7 @@ elif page == "Site Master":
                             "Supabase did not return an inserted record. "
                             "Check database permissions and RLS policies."
                         )
-    st.stop()
+                        st.stop()
 
                     st.session_state.sites.append(new_site)
 
