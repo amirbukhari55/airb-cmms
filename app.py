@@ -1134,7 +1134,7 @@ elif page == "Work Orders":
         document_wo_id = st.selectbox(
             "Select Work Order for Attachment",
             document_wo_options,
-            key="maintenance_document_wo",
+            key=f"maintenance_document_wo_{selected_site_id}",
             placeholder="No work orders available"
         )
 
