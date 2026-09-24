@@ -1046,7 +1046,7 @@ elif page == "Corrective Maintenance":
                         f"Corrective Maintenance {cm_id} submitted successfully."
                     )
                     
-                        st.session_state.pop("cm_from_wo", None)
+                    st.session_state.pop("cm_from_wo", None)
 
                     st.rerun()
 
