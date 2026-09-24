@@ -1126,13 +1126,16 @@ elif page == "Work Orders":
 
     with st.container(border=True):
 
+        document_wo_options = [
+            wo["WO ID"]
+            for wo in site_work_orders
+        ]
+
         document_wo_id = st.selectbox(
             "Select Work Order for Attachment",
-            [
-                wo["WO ID"]
-                for wo in st.session_state.work_orders
-            ],
-            key="maintenance_document_wo"
+            document_wo_options,
+            key="maintenance_document_wo",
+            placeholder="No work orders available"
         )
 
         document_type = st.selectbox(
@@ -1154,7 +1157,10 @@ elif page == "Work Orders":
             key="maintenance_file_upload"
         )
 
-        if st.button("Save Maintenance Attachment"):
+         if st.button(
+            "Save Maintenance Attachment",
+            disabled=not document_wo_options
+        ):
 
             if uploaded_maintenance_file is not None:
 
