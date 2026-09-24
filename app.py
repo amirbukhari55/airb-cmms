@@ -667,7 +667,28 @@ elif page == "Asset Register":
     # -----------------------------
     # REGISTER NEW ASSET
     # -----------------------------
+    
     st.subheader("Register New Asset")
+
+    # Identify the site selected in the sidebar.
+    registration_site_id = selected_site_id
+
+    if registration_site_id == "ALL":
+        registration_site_id = st.selectbox(
+            "Assign Asset to Site",
+            options=[
+                site["Site ID"]
+                for site in st.session_state.sites
+                if site["Status"] == "Active"
+            ],
+            format_func=lambda site_id: next(
+                site["Site Name"]
+                for site in st.session_state.sites
+                if site["Site ID"] == site_id
+            )
+        )
+    else:
+        st.info(f"Registering asset under: {site_options[registration_site_id]}")
 
     with st.form("asset_form"):
         col1, col2 = st.columns(2)
@@ -709,27 +730,52 @@ elif page == "Asset Register":
 
         if submitted:
 
-            if asset_id and asset_name:
+            clean_asset_id = asset_id.strip()
+            clean_asset_name = asset_name.strip()
+
+            duplicate_asset = any(
+                asset.get("Asset ID") == clean_asset_id
+                and asset.get("Site ID") == registration_site_id
+                for asset in st.session_state.assets
+            )
+
+            if not clean_asset_id or not clean_asset_name:
+                st.error("Asset ID and Asset Name are required.")
+
+            elif duplicate_asset:
+                st.error(
+                    f"Asset {clean_asset_id} already exists at this site."
+                )
+
+            else:
+                site_name = next(
+                    site["Site Name"]
+                    for site in st.session_state.sites
+                    if site["Site ID"] == registration_site_id
+                )
 
                 new_asset = {
-                    "Asset ID": asset_id,
-                    "Asset Name": asset_name,
+                    "Asset ID": clean_asset_id,
+                    "Asset Name": clean_asset_name,
+                    "Site ID": registration_site_id,
+                    "Site": site_name,
                     "Asset Type": asset_type,
-                    "Location": location,
+                    "Location": location.strip(),
                     "Status": status,
-                    "Manufacturer": manufacturer
+                    "Manufacturer": manufacturer.strip()
                 }
 
                 st.session_state.assets.append(new_asset)
 
-                st.success(
-                    f"Asset {asset_id} - {asset_name} registered successfully."
+                st.session_state.asset_success_message = (
+                    f"Asset {clean_asset_id} registered successfully "
+                    f"under {site_name}."
                 )
 
                 st.rerun()
 
-            else:
-                st.error("Asset ID and Asset Name are required.")
+    if "asset_success_message" in st.session_state:
+        st.success(st.session_state.pop("asset_success_message"))
 
 
 elif page == "PM Schedule":
