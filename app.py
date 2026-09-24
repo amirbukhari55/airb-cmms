@@ -859,10 +859,35 @@ elif page == "Corrective Maintenance":
     # -----------------------------
     # OPEN CORRECTIVE MAINTENANCE
     # -----------------------------
+  
     st.subheader("Open Corrective Maintenance")
 
+    cm_display = []
+
+    for cm in st.session_state.corrective_maintenance:
+
+        cm_record = cm.copy()
+
+        if cm["Procurement"] == "Required":
+
+            related_requests = [
+                req
+                for req in st.session_state.procurement_requests
+                if req["CM ID"] == cm["CM ID"]
+            ]
+
+            if related_requests:
+                cm_record["Procurement Status"] = related_requests[-1]["Status"]
+            else:
+                cm_record["Procurement Status"] = "Pending Request"
+
+        else:
+            cm_record["Procurement Status"] = "Not Required"
+
+        cm_display.append(cm_record)
+
     st.dataframe(
-        st.session_state.corrective_maintenance,
+        cm_display,
         use_container_width=True
     )
 
