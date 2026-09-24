@@ -1060,6 +1060,9 @@ elif page == "Work Orders":
     # CREATE WORK ORDER
     # --------------------------------
     st.subheader("Create Work Order")
+    
+    if "wo_success_message" in st.session_state:
+        st.success(st.session_state.pop("wo_success_message"))
 
     with st.form("work_order_form"):
 
@@ -1154,18 +1157,10 @@ elif page == "Work Orders":
                     "Estimated Hours": estimated_hours
                 }
 
-                st.session_state.work_orders.append(new_work_order)
-
                 
                 st.session_state.work_orders.append(new_work_order)
 
-                st.success(
-                    f"Work Order {wo_id} created successfully."
-                )
-
-                st.rerun()
-
-                st.success(
+                st.session_state.wo_success_message = (
                     f"Work Order {wo_id} created successfully."
                 )
 
