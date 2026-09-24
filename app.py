@@ -506,6 +506,45 @@ elif page == "Asset Register":
     st.title("Asset Register")
     st.caption("Register and manage plant assets and equipment.")
 
+    # --------------------------------
+    # IMPORT ASSET MASTERLIST
+    # --------------------------------
+    st.subheader("Import Asset Masterlist")
+
+    uploaded_asset_file = st.file_uploader(
+        "Upload AIRB Asset Masterlist",
+        type=["xlsx"],
+        key="asset_masterlist_upload"
+    )
+
+    if uploaded_asset_file is not None:
+
+        import_df = pd.read_excel(
+            uploaded_asset_file,
+            sheet_name="Raw Data",
+            header=6
+        )
+
+        # Remove completely empty rows.
+        import_df = import_df.dropna(how="all")
+
+        # Keep rows with an equipment tag.
+        import_df = import_df[
+            import_df["Tag No"].notna()
+        ].copy()
+
+        st.success(
+            f"Excel loaded successfully: {len(import_df)} asset records found."
+        )
+
+        st.dataframe(
+            import_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+    st.divider()
+
     # -----------------------------
     # REGISTERED ASSETS
     # -----------------------------
