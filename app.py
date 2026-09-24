@@ -921,7 +921,16 @@ elif page == "PM Schedule":
             for item in site_assets
         }
 
-        st.info(f"Creating PM schedule under: {selected_site}")
+site_name = next(
+    (
+        site["Site Name"]
+        for site in st.session_state.sites
+        if site["Site ID"] == selected_site_id
+    ),
+    selected_site_id
+)
+
+st.info(f"Creating PM schedule under: {selected_site_id} - {site_name}")
 
         if not asset_lookup:
 
@@ -1034,7 +1043,7 @@ elif page == "PM Schedule":
 
                         st.session_state.pm_success_message = (
                             f"PM Schedule {clean_pm_id} created "
-                            f"successfully under {selected_site}."
+                            f"successfully under {site_name}."
                         )
 
                         st.rerun()
