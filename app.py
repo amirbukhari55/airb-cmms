@@ -254,6 +254,7 @@ page = st.sidebar.radio(
     key="page"
 )
 
+
 # -----------------------------
 # DASHBOARD
 # -----------------------------
@@ -263,14 +264,63 @@ if page == "Dashboard":
     st.title("Maintenance Dashboard")
     st.caption("AIRB Centralised Maintenance Management System")
 
-    # -----------------------------
-    # DYNAMIC DASHBOARD METRICS
-    # -----------------------------
     today = pd.Timestamp.today().date()
 
+    # --------------------------------
+    # SITE FILTERING
+    # --------------------------------
+    if selected_site_id == "ALL":
+        dashboard_assets = st.session_state.assets
+        dashboard_pm = st.session_state.pm_schedules
+        dashboard_wo = st.session_state.work_orders
+        dashboard_cm = st.session_state.corrective_maintenance
+        dashboard_procurement = st.session_state.procurement_requests
+
+        st.info("Management View — Consolidated performance across all sites")
+
+    else:
+        dashboard_assets = [
+            asset for asset in st.session_state.assets
+            if asset.get("Site ID") == selected_site_id
+        ]
+
+        dashboard_pm = [
+            pm for pm in st.session_state.pm_schedules
+            if pm.get("Site ID") == selected_site_id
+        ]
+
+        dashboard_wo = [
+            wo for wo in st.session_state.work_orders
+            if wo.get("Site ID") == selected_site_id
+        ]
+
+        dashboard_cm = [
+            cm for cm in st.session_state.corrective_maintenance
+            if cm.get("Site ID") == selected_site_id
+        ]
+
+        dashboard_procurement = [
+            req for req in st.session_state.procurement_requests
+            if req.get("Site ID") == selected_site_id
+        ]
+
+        site_name = next(
+            (
+                site["Site Name"]
+                for site in st.session_state.sites
+                if site["Site ID"] == selected_site_id
+            ),
+            selected_site_id
+        )
+
+        st.info(f"Operational Site: {selected_site_id} - {site_name}")
+
+    # --------------------------------
+    # DYNAMIC DASHBOARD METRICS
+    # --------------------------------
     active_pm = [
-        pm for pm in st.session_state.pm_schedules
-        if pm["Status"] == "Active"
+        pm for pm in dashboard_pm
+        if pm.get("Status") == "Active"
     ]
 
     pm_due = sum(
@@ -284,13 +334,13 @@ if page == "Dashboard":
     )
 
     open_wo = sum(
-        1 for wo in st.session_state.work_orders
-        if wo["Status"] not in ["Completed", "Closed"]
+        1 for wo in dashboard_wo
+        if wo.get("Status") not in ["Completed", "Closed"]
     )
 
     open_cm = sum(
-        1 for cm in st.session_state.corrective_maintenance
-        if cm["Status"] not in ["Completed", "Closed"]
+        1 for cm in dashboard_cm
+        if cm.get("Status") not in ["Completed", "Closed"]
     )
 
     col1, col2, col3, col4 = st.columns(4)
@@ -302,45 +352,129 @@ if page == "Dashboard":
 
     st.divider()
 
-    # -----------------------------
+    # --------------------------------
     # MAINTENANCE OVERVIEW
-    # -----------------------------
+    # --------------------------------
     st.subheader("Maintenance Overview")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric(
-            "Completed Work Orders",
-            sum(
-                1 for wo in st.session_state.work_orders
-                if wo["Status"] in ["Completed", "Closed"]
-            )
-        )
+        st.metric("Registered Assets", len(dashboard_assets))
 
     with col2:
         st.metric(
-            "Pending Engineer Review",
+            "Completed Work Orders",
             sum(
-                1 for wo in st.session_state.work_orders
-                if wo["Status"] == "Pending Engineer Review"
+                1 for wo in dashboard_wo
+                if wo.get("Status") in ["Completed", "Closed"]
             )
         )
 
     with col3:
         st.metric(
+            "Pending Engineer Review",
+            sum(
+                1 for wo in dashboard_wo
+                if wo.get("Status") == "Pending Engineer Review"
+            )
+        )
+
+    with col4:
+        st.metric(
             "Pending Procurement",
             sum(
-                1 for req in st.session_state.procurement_requests
-                if req["Status"] != "Completed"
+                1 for req in dashboard_procurement
+                if req.get("Status") != "Completed"
             )
         )
 
     st.divider()
 
-    # -----------------------------
+    # --------------------------------
+    # MANAGEMENT VIEW - SITE PERFORMANCE
+    # --------------------------------
+    if selected_site_id == "ALL":
+
+        st.subheader("Operational Site Performance")
+
+        site_summary = []
+
+        for site in st.session_state.sites:
+
+            site_id = site["Site ID"]
+
+            site_assets = [
+                asset for asset in st.session_state.assets
+                if asset.get("Site ID") == site_id
+            ]
+
+            site_pm = [
+                pm for pm in st.session_state.pm_schedules
+                if pm.get("Site ID") == site_id
+                and pm.get("Status") == "Active"
+            ]
+
+            site_wo = [
+                wo for wo in st.session_state.work_orders
+                if wo.get("Site ID") == site_id
+            ]
+
+            site_cm = [
+                cm for cm in st.session_state.corrective_maintenance
+                if cm.get("Site ID") == site_id
+            ]
+
+            site_procurement = [
+                req for req in st.session_state.procurement_requests
+                if req.get("Site ID") == site_id
+            ]
+
+            site_summary.append({
+                "Site ID": site_id,
+                "Site Name": site["Site Name"],
+                "Assets": len(site_assets),
+                "Active PM": len(site_pm),
+                "Overdue PM": sum(
+                    1 for pm in site_pm
+                    if pd.to_datetime(
+                        pm["Next Due Date"]
+                    ).date() < today
+                ),
+                "Open WO": sum(
+                    1 for wo in site_wo
+                    if wo.get("Status") not in ["Completed", "Closed"]
+                ),
+                "Pending Review": sum(
+                    1 for wo in site_wo
+                    if wo.get("Status") == "Pending Engineer Review"
+                ),
+                "Open CM": sum(
+                    1 for cm in site_cm
+                    if cm.get("Status") not in ["Completed", "Closed"]
+                ),
+                "Pending Procurement": sum(
+                    1 for req in site_procurement
+                    if req.get("Status") != "Completed"
+                )
+            })
+
+        st.dataframe(
+            site_summary,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.caption(
+            "Legacy sample records without a Site ID are included in "
+            "consolidated KPIs but are not attributed to an individual site."
+        )
+
+        st.divider()
+
+    # --------------------------------
     # UPCOMING PREVENTIVE MAINTENANCE
-    # -----------------------------
+    # --------------------------------
     st.subheader("Upcoming Preventive Maintenance")
 
     upcoming_pm = []
@@ -359,12 +493,13 @@ if page == "Dashboard":
             pm_status = "Upcoming"
 
         upcoming_pm.append({
-            "PM Schedule ID": pm["PM Schedule ID"],
-            "Asset": pm["Asset"],
-            "Maintenance Type": pm["Maintenance Type"],
-            "Frequency": pm["Frequency"],
-            "Due Date": pm["Next Due Date"],
-            "Assigned Technician": pm["Assigned Technician"],
+            "Site ID": pm.get("Site ID", "Unassigned"),
+            "PM Schedule ID": pm.get("PM Schedule ID"),
+            "Asset": pm.get("Asset"),
+            "Maintenance Type": pm.get("Maintenance Type"),
+            "Frequency": pm.get("Frequency"),
+            "Due Date": pm.get("Next Due Date"),
+            "Assigned Technician": pm.get("Assigned Technician"),
             "Status": pm_status
         })
 
@@ -385,15 +520,16 @@ if page == "Dashboard":
 
     st.divider()
 
-    # -----------------------------
+    # --------------------------------
     # WORK ORDERS REQUIRING ATTENTION
-    # -----------------------------
+    # --------------------------------
     st.subheader("Work Orders Requiring Attention")
 
     attention_wos = [
-        wo for wo in st.session_state.work_orders
-        if wo["Status"] in [
+        wo for wo in dashboard_wo
+        if wo.get("Status") in [
             "Assigned",
+            "Open",
             "In Progress",
             "Pending Engineer Review"
         ]
