@@ -1181,8 +1181,23 @@ elif page == "Procurement":
                 type="primary"
             ):
 
+                
                 selected_request["Document"] = updated_document
                 selected_request["Status"] = updated_status
+
+                # Update related CM when procurement is completed
+                if updated_status == "Completed":
+
+                    related_cm = next(
+                        (
+                            cm for cm in st.session_state.corrective_maintenance
+                            if cm["CM ID"] == selected_request["CM ID"]
+                        ),
+                        None
+                    )
+
+                    if related_cm is not None:
+                        related_cm["Procurement Status"] = "Completed"
 
                 st.success(
                     f"{selected_request_id} updated to {updated_status}."
