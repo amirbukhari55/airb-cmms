@@ -1052,27 +1052,37 @@ elif page == "Work Orders":
     # WORK ORDER DATABASE
     # --------------------------------
     
+    # --------------------------------
+    # FILTER WORK ORDERS BY SITE
+    # --------------------------------
+    if selected_site_id == "ALL":
+        site_work_orders = st.session_state.work_orders
+    else:
+        site_work_orders = [
+            wo for wo in st.session_state.work_orders
+            if wo.get("Site ID") == selected_site_id
+        ]    
 
     # --------------------------------
     # WORK ORDER SUMMARY
     # --------------------------------
     open_count = sum(
-        1 for wo in st.session_state.work_orders
+        1 for wo in site_work_orders
         if wo["Status"] == "Open"
     )
 
     progress_count = sum(
-        1 for wo in st.session_state.work_orders
+        1 for wo in site_work_orders
         if wo["Status"] == "In Progress"
     )
 
     review_count = sum(
-        1 for wo in st.session_state.work_orders
+        1 for wo in site_work_orders
         if wo["Status"] == "Pending Engineer Review"
     )
 
     completed_count = sum(
-        1 for wo in st.session_state.work_orders
+        1 for wo in site_work_orders
         if wo["Status"] in ["Completed", "Closed"]
     )
 
@@ -1098,7 +1108,7 @@ elif page == "Work Orders":
     st.subheader("Active Work Orders")
 
     active_work_orders = [
-        wo for wo in st.session_state.work_orders
+        wo for wo in site_work_orders
         if wo["Status"] not in ["Completed", "Closed"]
     ]
 
