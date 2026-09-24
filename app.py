@@ -893,118 +893,157 @@ elif page == "PM Schedule":
 
     st.divider()
 
+
     # --------------------------------
     # CREATE PM SCHEDULE
     # --------------------------------
     st.subheader("Create PM Schedule")
 
-    with st.form("pm_schedule_form"):
+    # PM schedules must belong to a specific operational site.
+    if selected_site_id == "ALL":
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-
-            pm_id = st.text_input("PM Schedule ID")
-
-            asset_options = [
-                f"{item['Asset ID']} - {item['Asset Name']}"
-                for item in st.session_state.assets
-                if item["Status"] == "Active"
-            ]
-
-            asset = st.selectbox("Asset", asset_options)
-
-            task = st.text_input("PM Task Name")
-
-            maintenance_type = st.selectbox(
-                "Maintenance Type",
-                [
-                    "Preventive Maintenance",
-                    "Inspection",
-                    "Calibration",
-                    "Testing"
-                ]
-            )
-
-        with col2:
-
-            frequency = st.selectbox(
-                "Frequency",
-                [
-                    "Daily",
-                    "Weekly",
-                    "Monthly",
-                    "Quarterly",
-                    "Half-Yearly",
-                    "Yearly"
-                ]
-            )
-
-            start_date = st.date_input("Start Date")
-
-            technician = st.selectbox(
-                "Assigned Technician",
-                [
-                    "Technician A",
-                    "Technician B",
-                    "Technician C"
-                ]
-            )
-
-            duration = st.number_input(
-                "Estimated Duration (Hours)",
-                min_value=0.5,
-                step=0.5
-            )
-
-        instructions = st.text_area(
-            "PM Instructions",
-            placeholder="Enter maintenance instructions..."
+        st.info(
+            "Select an operational site from the sidebar "
+            "before creating a PM schedule."
         )
 
-        submitted = st.form_submit_button("Create PM Schedule")
+    else:
 
-        if submitted:
+        site_assets = [
+            item
+            for item in st.session_state.assets
+            if item.get("Site ID") == selected_site_id
+            and item.get("Status") == "Active"
+        ]
 
-            clean_pm_id = pm_id.strip()
+        asset_lookup = {
+            f"{item['Asset ID']} - {item['Asset Name']}": item["Asset ID"]
+            for item in site_assets
+        }
 
-            if not clean_pm_id or not task.strip():
+        st.info(f"Creating PM schedule under: {selected_site}")
 
-                st.error(
-                    "PM Schedule ID and PM Task Name are required."
+        if not asset_lookup:
+
+            st.warning(
+                "No active assets registered under this site. "
+                "Register or import assets first."
+            )
+
+        else:
+
+            with st.form("pm_schedule_form"):
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+
+                    pm_id = st.text_input("PM Schedule ID")
+
+                    asset = st.selectbox(
+                        "Asset",
+                        list(asset_lookup.keys())
+                    )
+
+                    task = st.text_input("PM Task Name")
+
+                    maintenance_type = st.selectbox(
+                        "Maintenance Type",
+                        [
+                            "Preventive Maintenance",
+                            "Inspection",
+                            "Calibration",
+                            "Testing"
+                        ]
+                    )
+
+                with col2:
+
+                    frequency = st.selectbox(
+                        "Frequency",
+                        [
+                            "Daily",
+                            "Weekly",
+                            "Monthly",
+                            "Quarterly",
+                            "Half-Yearly",
+                            "Yearly"
+                        ]
+                    )
+
+                    start_date = st.date_input("Start Date")
+
+                    technician = st.selectbox(
+                        "Assigned Technician",
+                        [
+                            "Technician A",
+                            "Technician B",
+                            "Technician C"
+                        ]
+                    )
+
+                    duration = st.number_input(
+                        "Estimated Duration (Hours)",
+                        min_value=0.5,
+                        step=0.5
+                    )
+
+                instructions = st.text_area(
+                    "PM Instructions",
+                    placeholder="Enter maintenance instructions..."
                 )
 
-            elif any(
-                pm.get("PM Schedule ID") == clean_pm_id
-                for pm in st.session_state.pm_schedules
-            ):
+                submitted = st.form_submit_button(
+                    "Create PM Schedule"
+                )
 
-                st.error("This PM Schedule ID already exists.")
+                if submitted:
 
-            else:
+                    clean_pm_id = pm_id.strip()
 
-                asset_id = asset.split(" - ")[0]
+                    if not clean_pm_id or not task.strip():
 
-                new_pm = {
-                    "PM Schedule ID": clean_pm_id,
-                    "Asset": asset_id,
-                    "Task": task.strip(),
-                    "Maintenance Type": maintenance_type,
-                    "Frequency": frequency,
-                    "Next Due Date": start_date.strftime("%Y-%m-%d"),
-                    "Assigned Technician": technician,
-                    "Estimated Hours": duration,
-                    "Instructions": instructions,
-                    "Status": "Active"
-                }
+                        st.error(
+                            "PM Schedule ID and PM Task Name are required."
+                        )
 
-                st.session_state.pm_schedules.append(new_pm)
+                    elif any(
+                        pm.get("PM Schedule ID") == clean_pm_id
+                        for pm in st.session_state.pm_schedules
+                    ):
+
+                        st.error("This PM Schedule ID already exists.")
+
+                    else:
+
+                        new_pm = {
+                            "PM Schedule ID": clean_pm_id,
+                            "Site ID": selected_site_id,
+                            "Asset": asset_lookup[asset],
+                            "Task": task.strip(),
+                            "Maintenance Type": maintenance_type,
+                            "Frequency": frequency,
+                            "Next Due Date": start_date.strftime("%Y-%m-%d"),
+                            "Assigned Technician": technician,
+                            "Estimated Hours": duration,
+                            "Instructions": instructions,
+                            "Status": "Active"
+                        }
+
+                        st.session_state.pm_schedules.append(new_pm)
+
+                        st.session_state.pm_success_message = (
+                            f"PM Schedule {clean_pm_id} created "
+                            f"successfully under {selected_site}."
+                        )
+
+                        st.rerun()
+
+            if "pm_success_message" in st.session_state:
 
                 st.success(
-                    f"PM Schedule {clean_pm_id} created successfully."
+                    st.session_state.pop("pm_success_message")
                 )
-
-                st.rerun()
                 
 elif page == "Work Orders":
     st.title("Work Orders")
