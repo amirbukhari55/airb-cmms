@@ -507,11 +507,14 @@ elif page == "PM Schedule":
         generated_count = 0
 
         for pm in st.session_state.pm_schedules:
+            
+            if not pm.get("PM Schedule ID"):
+                continue
 
             if pd.to_datetime(pm["Next Due Date"]).date() <= pd.Timestamp.today().date():
 
                 existing_wo = any(
-                    wo.get("PM Schedule ID") == pm["PM Schedule ID"]
+                    wo.get("PM Schedule ID") == pm.get("PM Schedule ID")
                     for wo in st.session_state.work_orders
                 )
 
