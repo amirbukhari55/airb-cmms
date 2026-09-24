@@ -73,16 +73,38 @@ with st.sidebar.expander("Database Connection", expanded=False):
 # -----------------------------
 
 
+
+# --------------------------------
+# LOAD SITES FROM SUPABASE
+# --------------------------------
+
 if "sites" not in st.session_state:
-    st.session_state.sites = [
-        {
-            "Site ID": "SITE-001",
-            "Site Name": "Water Treatment Plant 1",
-            "Location": "Malaysia",
-            "Plant Type": "WTP",
-            "Status": "Active"
-        }
-    ]
+
+    try:
+        response = (
+            supabase.table("sites")
+            .select("*")
+            .order("site_id")
+            .execute()
+        )
+
+        st.session_state.sites = []
+
+        for row in response.data:
+
+            site = row.get("site_data") or {}
+
+            st.session_state.sites.append({
+                "Site ID": row["site_id"],
+                "Site Name": row["site_name"],
+                "Location": site.get("Location", ""),
+                "Plant Type": site.get("Plant Type", "Other"),
+                "Status": site.get("Status", "Active")
+            })
+
+    except Exception as e:
+        st.error(f"Unable to load sites from Supabase: {e}")
+        st.stop()
 
 if "assets" not in st.session_state:
     st.session_state.assets = [
@@ -685,22 +707,37 @@ elif page == "Site Master":
                 for site in st.session_state.sites
             ):
                 st.error("This Site ID already exists.")
-
+ 
             else:
-
-                st.session_state.sites.append({
+                new_site = {
                     "Site ID": clean_site_id,
                     "Site Name": site_name.strip(),
                     "Location": location.strip(),
                     "Plant Type": plant_type,
                     "Status": status
-                })
+                }
 
-                st.session_state.site_success_message = (
-                    f"Site {clean_site_id} registered successfully."
-                )
+                try:
+                    supabase.table("sites").insert({
+                        "site_id": clean_site_id,
+                        "site_name": site_name.strip(),
+                        "site_data": {
+                            "Location": location.strip(),
+                            "Plant Type": plant_type,
+                            "Status": status
+                        }
+                    }).execute()
 
-                st.rerun()
+                    st.session_state.sites.append(new_site)
+
+                    st.session_state.site_success_message = (
+                        f"Site {clean_site_id} registered successfully."
+                    )
+
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"Unable to register site: {e}")
 
     if "site_success_message" in st.session_state:
         st.success(st.session_state.pop("site_success_message"))
