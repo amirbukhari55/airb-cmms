@@ -610,7 +610,66 @@ elif page == "Work Orders":
     )
 
     st.divider()
+    
+    # -----------------------------
+    # MAINTENANCE DOCUMENT ATTACHMENTS
+    # -----------------------------
+    st.subheader("Maintenance Document Attachments")
 
+    with st.container(border=True):
+
+        document_wo_id = st.selectbox(
+            "Select Work Order for Attachment",
+            [
+                wo["WO ID"]
+                for wo in st.session_state.work_orders
+            ],
+            key="maintenance_document_wo"
+        )
+
+        document_type = st.selectbox(
+            "Maintenance Document Type",
+            [
+                "PM Checklist",
+                "Inspection Report",
+                "Breakdown Photograph",
+                "Service Report",
+                "Maintenance Completion Report",
+                "Other Supporting Document"
+            ],
+            key="maintenance_document_type"
+        )
+
+        uploaded_maintenance_file = st.file_uploader(
+            "Upload Maintenance Document",
+            type=["pdf", "docx", "xlsx", "jpg", "jpeg", "png"],
+            key="maintenance_file_upload"
+        )
+
+        if st.button("Save Maintenance Attachment"):
+
+            if uploaded_maintenance_file is not None:
+
+                new_document = {
+                    "WO ID": document_wo_id,
+                    "Document Type": document_type,
+                    "Filename": uploaded_maintenance_file.name,
+                    "File Content": uploaded_maintenance_file.getvalue(),
+                    "Uploaded On": pd.Timestamp.today().strftime("%d %b %Y")
+                }
+
+                st.session_state.maintenance_documents.append(
+                    new_document
+                )
+
+                st.success(
+                    f"{uploaded_maintenance_file.name} attached to {document_wo_id}."
+                )
+
+            else:
+                st.error("Please select a document to upload.")
+
+    st.divider()
     # --------------------------------
     # UPDATE WORK ORDER STATUS
     # --------------------------------
