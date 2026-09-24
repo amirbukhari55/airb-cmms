@@ -193,15 +193,17 @@ if "navigate_to" in st.session_state:
 
 page = st.sidebar.radio(
     "Navigation",
-    [
-        "Dashboard",
-        "Asset Register",
-        "PM Schedule",
-        "Work Orders",
-        "Corrective Maintenance",
-        "Procurement",
-        "Maintenance History"
-    ],
+    
+[
+    "Dashboard",
+    "Site Master",
+    "Asset Register",
+    "PM Schedule",
+    "Work Orders",
+    "Corrective Maintenance",
+    "Procurement",
+    "Maintenance History"
+],
     key="page"
 )
 
