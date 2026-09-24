@@ -932,16 +932,16 @@ site_name = next(
 
 st.info(f"Creating PM schedule under: {selected_site_id} - {site_name}")
 
-        if not asset_lookup:
+if not asset_lookup:
 
-            st.warning(
-                "No active assets registered under this site. "
-                "Register or import assets first."
-            )
+    st.warning(
+        "No active assets registered under this site. "
+        "Register or import assets first."
+    )
 
-        else:
+else:
 
-            with st.form("pm_schedule_form"):
+    with st.form("pm_schedule_form"):
 
                 col1, col2 = st.columns(2)
 
