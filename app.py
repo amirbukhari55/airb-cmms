@@ -366,6 +366,104 @@ if page == "Dashboard":
 # -----------------------------
 # OTHER MODULES
 # -----------------------------
+
+
+elif page == "Site Master":
+
+    st.title("Site Master")
+    st.caption("Register and manage AIRB operational sites.")
+
+    # --------------------------------
+    # SITE DATABASE
+    # --------------------------------
+    if "sites" not in st.session_state:
+        st.session_state.sites = [
+            {
+                "Site ID": "SITE-001",
+                "Site Name": "Water Treatment Plant 1",
+                "Location": "Malaysia",
+                "Plant Type": "WTP",
+                "Status": "Active"
+            }
+        ]
+
+    # --------------------------------
+    # REGISTERED SITES
+    # --------------------------------
+    st.subheader("Registered Sites")
+
+    st.dataframe(
+        st.session_state.sites,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.divider()
+
+    # --------------------------------
+    # CREATE NEW SITE
+    # --------------------------------
+    st.subheader("Register New Site")
+
+    with st.form("site_master_form"):
+
+        site_id = st.text_input("Site ID")
+
+        site_name = st.text_input("Site Name")
+
+        location = st.text_input("Location")
+
+        plant_type = st.selectbox(
+            "Plant Type",
+            [
+                "WTP",
+                "WWTP",
+                "STP",
+                "WRP",
+                "Desalination",
+                "Other"
+            ]
+        )
+
+        status = st.selectbox(
+            "Status",
+            ["Active", "Inactive"]
+        )
+
+        submitted = st.form_submit_button("Register Site")
+
+        if submitted:
+
+            clean_site_id = site_id.strip()
+
+            if not clean_site_id or not site_name.strip():
+                st.error("Site ID and Site Name are required.")
+
+            elif any(
+                site["Site ID"] == clean_site_id
+                for site in st.session_state.sites
+            ):
+                st.error("This Site ID already exists.")
+
+            else:
+
+                st.session_state.sites.append({
+                    "Site ID": clean_site_id,
+                    "Site Name": site_name.strip(),
+                    "Location": location.strip(),
+                    "Plant Type": plant_type,
+                    "Status": status
+                })
+
+                st.session_state.site_success_message = (
+                    f"Site {clean_site_id} registered successfully."
+                )
+
+                st.rerun()
+
+    if "site_success_message" in st.session_state:
+        st.success(st.session_state.pop("site_success_message"))
+
 elif page == "Asset Register":
     st.title("Asset Register")
     st.caption("Register and manage plant assets and equipment.")
