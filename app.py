@@ -951,7 +951,7 @@ elif page == "Corrective Maintenance":
             type="primary"
         )
 
-                if submitted:
+        if submitted:
             if cm_id and problem:
 
                 # Prevent duplicate CM ID
