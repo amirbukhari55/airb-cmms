@@ -132,6 +132,10 @@ if "procurement_requests" not in st.session_state:
             "Status": "New"
         }
     ]
+
+if "procurement_documents" not in st.session_state:
+    st.session_state.procurement_documents = []
+    
 if "maintenance_history" not in st.session_state:
     st.session_state.maintenance_history = [
         {
