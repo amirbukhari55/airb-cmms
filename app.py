@@ -208,61 +208,158 @@ page = st.sidebar.radio(
 # -----------------------------
 # DASHBOARD
 # -----------------------------
+
 if page == "Dashboard":
 
     st.title("Maintenance Dashboard")
     st.caption("AIRB Centralised Maintenance Management System")
 
+    # -----------------------------
+    # DYNAMIC DASHBOARD METRICS
+    # -----------------------------
+    today = pd.Timestamp.today().date()
+
+    active_pm = [
+        pm for pm in st.session_state.pm_schedules
+        if pm["Status"] == "Active"
+    ]
+
+    pm_due = sum(
+        1 for pm in active_pm
+        if pd.to_datetime(pm["Next Due Date"]).date() == today
+    )
+
+    overdue_pm = sum(
+        1 for pm in active_pm
+        if pd.to_datetime(pm["Next Due Date"]).date() < today
+    )
+
+    open_wo = sum(
+        1 for wo in st.session_state.work_orders
+        if wo["Status"] not in ["Completed", "Closed"]
+    )
+
+    open_cm = sum(
+        1 for cm in st.session_state.corrective_maintenance
+        if cm["Status"] not in ["Completed", "Closed"]
+    )
+
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric("PM Due", 12)
-    col2.metric("Overdue PM", 3)
-    col3.metric("Open Work Orders", 5)
-    col4.metric("Breakdown", 2)
+    col1.metric("PM Due Today", pm_due)
+    col2.metric("Overdue PM", overdue_pm)
+    col3.metric("Open Work Orders", open_wo)
+    col4.metric("Open Corrective Maintenance", open_cm)
 
     st.divider()
 
+    # -----------------------------
+    # MAINTENANCE OVERVIEW
+    # -----------------------------
     st.subheader("Maintenance Overview")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.info("""
-        **Preventive Maintenance**
-
-        Monitor scheduled maintenance and upcoming PM activities.
-        """)
+        st.metric(
+            "Completed Work Orders",
+            sum(
+                1 for wo in st.session_state.work_orders
+                if wo["Status"] in ["Completed", "Closed"]
+            )
+        )
 
     with col2:
-        st.warning("""
-        **Corrective Maintenance**
+        st.metric(
+            "Pending Engineer Review",
+            sum(
+                1 for wo in st.session_state.work_orders
+                if wo["Status"] == "Pending Engineer Review"
+            )
+        )
 
-        Monitor breakdowns, corrective actions and outstanding work.
-        """)
+    with col3:
+        st.metric(
+            "Pending Procurement",
+            sum(
+                1 for req in st.session_state.procurement_requests
+                if req["Status"] != "Completed"
+            )
+        )
 
+    st.divider()
+
+    # -----------------------------
+    # UPCOMING PREVENTIVE MAINTENANCE
+    # -----------------------------
     st.subheader("Upcoming Preventive Maintenance")
 
-    st.dataframe(
-        {
-            "Asset": ["P-101", "BL-02", "RO-P03"],
-            "Task": [
-                "Pump Inspection",
-                "Blower Service",
-                "Pump Service"
-            ],
-            "Due": [
-                "Today",
-                "24 Sep 2026",
-                "25 Sep 2026"
-            ],
-            "Status": [
-                "Due",
-                "Planned",
-                "Planned"
-            ]
-        },
-        use_container_width=True
+    upcoming_pm = []
+
+    for pm in active_pm:
+
+        due_date = pd.to_datetime(
+            pm["Next Due Date"]
+        ).date()
+
+        if due_date < today:
+            pm_status = "Overdue"
+        elif due_date == today:
+            pm_status = "Due Today"
+        else:
+            pm_status = "Upcoming"
+
+        upcoming_pm.append({
+            "PM Schedule ID": pm["PM Schedule ID"],
+            "Asset": pm["Asset"],
+            "Maintenance Type": pm["Maintenance Type"],
+            "Frequency": pm["Frequency"],
+            "Due Date": pm["Next Due Date"],
+            "Assigned Technician": pm["Assigned Technician"],
+            "Status": pm_status
+        })
+
+    upcoming_pm.sort(
+        key=lambda item: item["Due Date"]
     )
+
+    if upcoming_pm:
+
+        st.dataframe(
+            upcoming_pm,
+            use_container_width=True,
+            hide_index=True
+        )
+
+    else:
+        st.info("No active preventive maintenance schedules.")
+
+    st.divider()
+
+    # -----------------------------
+    # WORK ORDERS REQUIRING ATTENTION
+    # -----------------------------
+    st.subheader("Work Orders Requiring Attention")
+
+    attention_wos = [
+        wo for wo in st.session_state.work_orders
+        if wo["Status"] in [
+            "Assigned",
+            "In Progress",
+            "Pending Engineer Review"
+        ]
+    ]
+
+    if attention_wos:
+
+        st.dataframe(
+            attention_wos,
+            use_container_width=True,
+            hide_index=True
+        )
+
+    else:
+        st.success("No outstanding work orders.")
 
 # -----------------------------
 # OTHER MODULES
