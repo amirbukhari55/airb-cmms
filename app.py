@@ -734,7 +734,6 @@ elif page == "Site Master":
                             "Check database permissions and RLS policies."
                         )
     st.stop()
-                    }).execute()
 
                     st.session_state.sites.append(new_site)
 
