@@ -1556,6 +1556,7 @@ elif page == "Work Orders":
 
                 new_work_order = {
                     "WO ID": wo_id,
+                    "Site ID": selected_site_id,
                     "Asset": asset_id,
                     "Work": work_description,
                     "Type": maintenance_type,
