@@ -642,7 +642,19 @@ elif page == "Asset Register":
     # -----------------------------
     st.subheader("Registered Assets")
 
-    assets_df = pd.DataFrame(st.session_state.assets)
+    
+    # Display assets for the selected operational site.
+    if selected_site_id == "ALL":
+        visible_assets = st.session_state.assets
+    else:
+        visible_assets = [
+            asset for asset in st.session_state.assets
+            if asset.get("Site ID") == selected_site_id
+        ]
+
+    assets_df = pd.DataFrame(visible_assets)
+
+    st.caption(f"Displaying {len(visible_assets)} assets")
 
     st.dataframe(
         assets_df,
