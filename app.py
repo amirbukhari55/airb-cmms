@@ -668,7 +668,55 @@ elif page == "Work Orders":
 
             else:
                 st.error("Please select a document to upload.")
+    
+    # -----------------------------
+    # MAINTENANCE DOCUMENT REGISTER
+    # -----------------------------
+    st.subheader("Uploaded Maintenance Documents")
 
+    saved_maintenance_documents = [
+        doc
+        for doc in st.session_state.maintenance_documents
+        if doc["WO ID"] == document_wo_id
+    ]
+
+    if saved_maintenance_documents:
+
+        maintenance_document_table = [
+            {
+                "Document Type": doc["Document Type"],
+                "Filename": doc["Filename"],
+                "Uploaded On": doc["Uploaded On"]
+            }
+            for doc in saved_maintenance_documents
+        ]
+
+        st.dataframe(
+            maintenance_document_table,
+            use_container_width=True
+        )
+
+        selected_maintenance_document = st.selectbox(
+            "Select Document to Download",
+            range(len(saved_maintenance_documents)),
+            format_func=lambda i: saved_maintenance_documents[i]["Filename"],
+            key="download_maintenance_document"
+        )
+
+        selected_file = saved_maintenance_documents[
+            selected_maintenance_document
+        ]
+
+        st.download_button(
+            "Download Maintenance Document",
+            data=selected_file["File Content"],
+            file_name=selected_file["Filename"],
+            mime="application/octet-stream",
+            key="download_maintenance_attachment"
+        )
+
+    else:
+        st.info("No documents uploaded for this Work Order.")
     st.divider()
     # --------------------------------
     # UPDATE WORK ORDER STATUS
