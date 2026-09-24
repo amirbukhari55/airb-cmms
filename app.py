@@ -2,8 +2,32 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client
 
+
+# -----------------------------
 # SUPABASE CONNECTION TEST
-# Paste the connection test block here
+# -----------------------------
+
+@st.cache_resource
+def get_supabase_client():
+    return create_client(
+        st.secrets["supabase"]["url"],
+        st.secrets["supabase"]["key"]
+    )
+
+supabase = get_supabase_client()
+
+with st.sidebar.expander("Database Connection", expanded=False):
+    if st.button("Test Supabase Connection"):
+        try:
+            result = (
+                supabase.table("sites")
+                .select("site_id")
+                .limit(1)
+                .execute()
+            )
+            st.success("Supabase connected successfully!")
+        except Exception as e:
+            st.error(f"Database connection failed: {e}")
 
 # -----------------------------
 # SESSION DATA
