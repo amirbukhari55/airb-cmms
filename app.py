@@ -1815,6 +1815,7 @@ elif page == "Corrective Maintenance":
                                 new_procurement = {
                                     "Request ID": request_id,
                                     "Site ID": selected_site_id,
+                                    "Site ID": selected_site_id,
                                     "CM ID": clean_cm_id,
                                     "WO ID": wo_id,
                                     "Asset": asset,
@@ -1840,44 +1841,95 @@ elif page == "Corrective Maintenance":
     if "cm_success_message" in st.session_state:
         st.success(st.session_state.pop("cm_success_message"))
 
+
 elif page == "Procurement":
     st.title("Maintenance Procurement")
     st.caption("Manage PR / IER requests generated from maintenance activities.")
 
     # -----------------------------
+    # SITE-SPECIFIC PROCUREMENT DATA
+    # -----------------------------
+    # Resolve site through the linked CM/WO for older records
+    # that do not yet have a Site ID.
+
+    def procurement_site_id(req):
+        if req.get("Site ID"):
+            return req["Site ID"]
+
+        related_cm = next(
+            (
+                cm for cm in st.session_state.corrective_maintenance
+                if cm.get("CM ID") == req.get("CM ID")
+            ),
+            None
+        )
+
+        if related_cm and related_cm.get("Site ID"):
+            return related_cm["Site ID"]
+
+        related_wo = next(
+            (
+                wo for wo in st.session_state.work_orders
+                if wo.get("WO ID") == req.get("WO ID")
+            ),
+            None
+        )
+
+        return related_wo.get("Site ID") if related_wo else None
+
+    site_requests = [
+        req
+        for req in st.session_state.procurement_requests
+        if procurement_site_id(req) == selected_site_id
+    ]
+
+    site_cm = [
+        cm
+        for cm in st.session_state.corrective_maintenance
+        if cm.get("Site ID") == selected_site_id
+        and cm.get("Procurement") == "Required"
+    ]
+
+    # -----------------------------
     # PROCUREMENT SUMMARY
     # -----------------------------
     new_requests = sum(
-        1 for req in st.session_state.procurement_requests
-        if req["Status"] == "New"
+        req.get("Status") == "New"
+        for req in site_requests
     )
-    
+
     pending_approval = sum(
-        1 for req in st.session_state.procurement_requests
-        if req["Status"] in ["Pending Engineer Review", "Pending Approval"]
+        req.get("Status") in [
+            "Pending Engineer Review",
+            "Pending Approval"
+        ]
+        for req in site_requests
     )
-    
+
     issued_requests = sum(
-        1 for req in st.session_state.procurement_requests
-        if req["Status"] in ["PR / IER Issued", "PO Issued"]
+        req.get("Status") in [
+            "PR / IER Issued",
+            "PO Issued"
+        ]
+        for req in site_requests
     )
-    
+
     completed_requests = sum(
-        1 for req in st.session_state.procurement_requests
-        if req["Status"] == "Completed"
+        req.get("Status") == "Completed"
+        for req in site_requests
     )
-    
+
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         st.metric("New Requests", new_requests)
-    
+
     with col2:
         st.metric("Pending Approval", pending_approval)
-    
+
     with col3:
         st.metric("PR / IER Issued", issued_requests)
-    
+
     with col4:
         st.metric("Completed", completed_requests)
 
@@ -1888,13 +1940,16 @@ elif page == "Procurement":
     # -----------------------------
     st.subheader("Maintenance Procurement Requests")
 
-    st.dataframe(
-        st.session_state.procurement_requests,
-        use_container_width=True
-    )
+    if site_requests:
+        st.dataframe(
+            site_requests,
+            use_container_width=True
+        )
+    else:
+        st.info("No procurement requests for the selected site.")
 
     st.divider()
-    
+
     # -----------------------------
     # UPDATE EXISTING PROCUREMENT REQUEST
     # -----------------------------
@@ -1902,8 +1957,8 @@ elif page == "Procurement":
 
     request_options = [
         req["Request ID"]
-        for req in st.session_state.procurement_requests
-        if req["Status"] != "Completed"
+        for req in site_requests
+        if req.get("Status") != "Completed"
     ]
 
     if request_options:
@@ -1915,7 +1970,7 @@ elif page == "Procurement":
         )
 
         selected_request = next(
-            req for req in st.session_state.procurement_requests
+            req for req in site_requests
             if req["Request ID"] == selected_request_id
         )
 
@@ -1927,29 +1982,36 @@ elif page == "Procurement":
             st.write(f"**Requirement:** {selected_request['Requirement']}")
             st.write(f"**Current Status:** {selected_request['Status']}")
 
+            document_options = ["Pending", "PR", "IER"]
+
             updated_document = st.selectbox(
                 "Procurement Document",
-                ["Pending", "PR", "IER"],
+                document_options,
                 index=(
-                    ["Pending", "PR", "IER"].index(
-                        selected_request["Document"]
-                    )
-                    if selected_request["Document"] in ["Pending", "PR", "IER"]
+                    document_options.index(selected_request.get("Document"))
+                    if selected_request.get("Document") in document_options
                     else 0
                 ),
                 key="update_procurement_document"
             )
 
+            status_options = [
+                "New",
+                "Pending Engineer Review",
+                "Pending Approval",
+                "PR / IER Issued",
+                "PO Issued",
+                "Completed"
+            ]
+
             updated_status = st.selectbox(
                 "New Procurement Status",
-                [
-                    "New",
-                    "Pending Engineer Review",
-                    "Pending Approval",
-                    "PR / IER Issued",
-                    "PO Issued",
-                    "Completed"
-                ],
+                status_options,
+                index=(
+                    status_options.index(selected_request.get("Status"))
+                    if selected_request.get("Status") in status_options
+                    else 0
+                ),
                 key="update_procurement_status"
             )
 
@@ -1958,17 +2020,16 @@ elif page == "Procurement":
                 type="primary"
             ):
 
-                
                 selected_request["Document"] = updated_document
                 selected_request["Status"] = updated_status
 
-                # Update related CM when procurement is completed
                 if updated_status == "Completed":
 
                     related_cm = next(
                         (
-                            cm for cm in st.session_state.corrective_maintenance
-                            if cm["CM ID"] == selected_request["CM ID"]
+                            cm
+                            for cm in st.session_state.corrective_maintenance
+                            if cm.get("CM ID") == selected_request["CM ID"]
                         ),
                         None
                     )
@@ -1976,272 +2037,305 @@ elif page == "Procurement":
                     if related_cm is not None:
                         related_cm["Procurement Status"] = "Completed"
 
-                st.success(
+                st.session_state.procurement_success_message = (
                     f"{selected_request_id} updated to {updated_status}."
                 )
 
                 st.rerun()
 
     else:
-        st.info("No active procurement requests available.")
+        st.info("No active procurement requests for the selected site.")
+
+    if "procurement_success_message" in st.session_state:
+        st.success(
+            st.session_state.pop("procurement_success_message")
+        )
 
     st.divider()
 
-    
     # -----------------------------
     # PROCUREMENT DOCUMENT UPLOAD
     # -----------------------------
     st.subheader("Procurement Document Attachments")
 
-    with st.container(border=True):
-
-        document_request_id = st.selectbox(
-            "Select Procurement Request",
-            [
-                req["Request ID"]
-                for req in st.session_state.procurement_requests
-            ],
-            key="document_request_id"
-        )
-
-        document_type = st.selectbox(
-            "Document Type",
-            [
-                "PR / IER",
-                "Supplier Quotation",
-                "Purchase Order (PO)",
-                "Delivery Order (DO)",
-                "Invoice",
-                "Other Supporting Document"
-            ],
-            key="document_upload_type"
-        )
-
-        uploaded_file = st.file_uploader(
-            "Upload Document",
-            type=["pdf", "docx", "xlsx", "jpg", "jpeg", "png"],
-            key="procurement_file_upload"
-        )
-
-        if st.button("Save Attachment"):
-
-            if uploaded_file is not None:
-
-                new_document = {
-                    "Request ID": document_request_id,
-                    "Document Type": document_type,
-                    "Filename": uploaded_file.name,
-                    "File Content": uploaded_file.getvalue(),
-                    "Uploaded On": pd.Timestamp.today().strftime("%d %b %Y")
-                }
-
-                st.session_state.procurement_documents.append(
-                    new_document
-                )
-
-                st.success(
-                    f"{uploaded_file.name} attached to {document_request_id}."
-                )
-
-            else:
-                st.error("Please select a document to upload.")
-
-    
-    # -----------------------------
-    # PROCUREMENT DOCUMENT REGISTER
-    # -----------------------------
-    st.subheader("Uploaded Procurement Documents")
-
-    saved_documents = [
-        doc
-        for doc in st.session_state.procurement_documents
-        if doc["Request ID"] == document_request_id
+    document_request_options = [
+        req["Request ID"]
+        for req in site_requests
     ]
 
-    if saved_documents:
+    if document_request_options:
 
-        document_table = [
-            {
-                "Document Type": doc["Document Type"],
-                "Filename": doc["Filename"],
-                "Uploaded On": doc["Uploaded On"]
-            }
-            for doc in saved_documents
+        with st.container(border=True):
+
+            document_request_id = st.selectbox(
+                "Select Procurement Request",
+                document_request_options,
+                key="document_request_id"
+            )
+
+            document_type = st.selectbox(
+                "Document Type",
+                [
+                    "PR / IER",
+                    "Supplier Quotation",
+                    "Purchase Order (PO)",
+                    "Delivery Order (DO)",
+                    "Invoice",
+                    "Other Supporting Document"
+                ],
+                key="document_upload_type"
+            )
+
+            uploaded_file = st.file_uploader(
+                "Upload Document",
+                type=["pdf", "docx", "xlsx", "jpg", "jpeg", "png"],
+                key="procurement_file_upload"
+            )
+
+            if st.button("Save Attachment"):
+
+                if uploaded_file is not None:
+
+                    new_document = {
+                        "Site ID": selected_site_id,
+                        "Request ID": document_request_id,
+                        "Document Type": document_type,
+                        "Filename": uploaded_file.name,
+                        "File Content": uploaded_file.getvalue(),
+                        "Uploaded On": pd.Timestamp.today().strftime("%d %b %Y")
+                    }
+
+                    st.session_state.procurement_documents.append(
+                        new_document
+                    )
+
+                    st.success(
+                        f"{uploaded_file.name} attached to {document_request_id}."
+                    )
+
+                else:
+                    st.error("Please select a document to upload.")
+
+        # -----------------------------
+        # PROCUREMENT DOCUMENT REGISTER
+        # -----------------------------
+        st.subheader("Uploaded Procurement Documents")
+
+        saved_documents = [
+            doc
+            for doc in st.session_state.procurement_documents
+            if doc.get("Request ID") == document_request_id
         ]
 
-        st.dataframe(
-            document_table,
-            use_container_width=True
-        )
+        if saved_documents:
 
-        selected_document_name = st.selectbox(
-            "Select Document to Download",
-            [
-                f"{i + 1}. {doc['Filename']}"
-                for i, doc in enumerate(saved_documents)
-            ],
-            key="download_procurement_document"
-        )
+            document_table = [
+                {
+                    "Document Type": doc["Document Type"],
+                    "Filename": doc["Filename"],
+                    "Uploaded On": doc["Uploaded On"]
+                }
+                for doc in saved_documents
+            ]
 
-        selected_index = int(
-            selected_document_name.split(".")[0]
-        ) - 1
+            st.dataframe(
+                document_table,
+                use_container_width=True
+            )
 
-        selected_document = saved_documents[selected_index]
+            selected_document_name = st.selectbox(
+                "Select Document to Download",
+                [
+                    f"{i + 1}. {doc['Filename']}"
+                    for i, doc in enumerate(saved_documents)
+                ],
+                key="download_procurement_document"
+            )
 
-        st.download_button(
-            "Download Selected Document",
-            data=selected_document["File Content"],
-            file_name=selected_document["Filename"],
-            mime="application/octet-stream",
-            key="download_procurement_attachment"
-        )
+            selected_index = int(
+                selected_document_name.split(".")[0]
+            ) - 1
+
+            selected_document = saved_documents[selected_index]
+
+            st.download_button(
+                "Download Selected Document",
+                data=selected_document["File Content"],
+                file_name=selected_document["Filename"],
+                mime="application/octet-stream",
+                key="download_procurement_attachment"
+            )
+
+        else:
+            st.info("No documents uploaded for this procurement request.")
 
     else:
-        st.info("No documents uploaded for this procurement request.")
-    
+        st.info(
+            "Create a procurement request for this site before uploading documents."
+        )
+
     st.divider()
-    
+
     # -----------------------------
     # PROCUREMENT REQUEST DETAILS
     # -----------------------------
     st.subheader("Process Procurement Request")
 
-    with st.container(border=True):
+    if site_cm:
 
-        col1, col2 = st.columns(2)
+        with st.container(border=True):
 
-        with col1:
-            request_id = st.text_input("Request ID")
+            col1, col2 = st.columns(2)
 
-            cm_options = [
-                cm["CM ID"]
-                for cm in st.session_state.corrective_maintenance
-                if cm["Procurement"] == "Required"
-            ]
-            
-            cm_reference = st.selectbox(
-                "Corrective Maintenance Reference",
-                cm_options
-            )
-            
-            selected_cm = next(
-                cm for cm in st.session_state.corrective_maintenance
-                if cm["CM ID"] == cm_reference
-            )
-            
-            asset = selected_cm["Asset"]
-            wo_reference = selected_cm["WO ID"]
-            
-            st.text_input(
-                "Asset",
-                value=asset,
-                disabled=True
-            )
-            
-            st.text_input(
-                "Related Work Order",
-                value=wo_reference,
-                disabled=True
-            )
+            with col1:
+                request_id = st.text_input("Request ID")
 
-            requirement_type = st.selectbox(
-                "Requirement Type",
-                [
-                    "Spare Part",
-                    "Material",
-                    "External Service",
-                    "Repair Service",
-                    "Replacement Equipment",
-                    "Other"
+                cm_options = [
+                    cm["CM ID"]
+                    for cm in site_cm
                 ]
-            )
 
-        with col2:
-            priority = st.selectbox(
-                "Priority",
-                ["Low", "Normal", "High", "Urgent"],
-                index=1
-            )
-
-            document_type = st.selectbox(
-                "Procurement Document",
-                ["PR", "IER"]
-            )
-
-            estimated_cost = st.number_input(
-                "Estimated Cost (RM)",
-                min_value=0.0,
-                step=100.0
-            )
-
-            procurement_status = st.selectbox(
-                "Status",
-                [
-                    "New",
-                    "Pending Engineer Review",
-                    "Pending Approval",
-                    "PR / IER Issued",
-                    "PO Issued",
-                    "Completed"
-                ]
-            )
-
-        requirement = st.text_area(
-            "Material / Service Required",
-            placeholder="Describe the required material, spare part or service..."
-        )
-
-        justification = st.text_area(
-            "Justification",
-            placeholder="Maintenance justification for procurement..."
-        )
-
-        generate_document = st.checkbox(
-            "Generate PR / IER document"
-        )
-
-        if generate_document:
-            st.info(
-                f"{document_type} will be generated from this maintenance request."
-            )
-
-        submitted = st.button(
-            "Submit Procurement Request",
-            type="primary"
-        )
-
-        if submitted:
-            if request_id and requirement:
-
-                new_request = {
-                    "Request ID": request_id,
-                    "CM ID": cm_reference,
-                    "WO ID": wo_reference,
-                    "Asset": asset,
-                    "Requirement": requirement,
-                    "Priority": priority,
-                    "Document": document_type,
-                    "Status": procurement_status
-                }
-        
-                st.session_state.procurement_requests.append(new_request)
-        
-                st.success(
-                    f"Procurement Request {request_id} submitted successfully."
+                cm_reference = st.selectbox(
+                    "Corrective Maintenance Reference",
+                    cm_options
                 )
-        
-                if generate_document:
-                    st.success(
-                        f"{document_type} generation initiated."
+
+                selected_cm = next(
+                    cm for cm in site_cm
+                    if cm["CM ID"] == cm_reference
+                )
+
+                asset = selected_cm["Asset"]
+                wo_reference = selected_cm["WO ID"]
+
+                st.text_input(
+                    "Asset",
+                    value=asset,
+                    disabled=True
+                )
+
+                st.text_input(
+                    "Related Work Order",
+                    value=wo_reference,
+                    disabled=True
+                )
+
+                requirement_type = st.selectbox(
+                    "Requirement Type",
+                    [
+                        "Spare Part",
+                        "Material",
+                        "External Service",
+                        "Repair Service",
+                        "Replacement Equipment",
+                        "Other"
+                    ]
+                )
+
+            with col2:
+                priority = st.selectbox(
+                    "Priority",
+                    ["Low", "Normal", "High", "Urgent"],
+                    index=1
+                )
+
+                document_type = st.selectbox(
+                    "Procurement Document",
+                    ["PR", "IER"]
+                )
+
+                estimated_cost = st.number_input(
+                    "Estimated Cost (RM)",
+                    min_value=0.0,
+                    step=100.0
+                )
+
+                procurement_status = st.selectbox(
+                    "Status",
+                    [
+                        "New",
+                        "Pending Engineer Review",
+                        "Pending Approval",
+                        "PR / IER Issued",
+                        "PO Issued",
+                        "Completed"
+                    ]
+                )
+
+            requirement = st.text_area(
+                "Material / Service Required",
+                placeholder="Describe the required material, spare part or service..."
+            )
+
+            justification = st.text_area(
+                "Justification",
+                placeholder="Maintenance justification for procurement..."
+            )
+
+            generate_document = st.checkbox(
+                "Generate PR / IER document"
+            )
+
+            if generate_document:
+                st.info(
+                    f"{document_type} will be generated from this maintenance request."
+                )
+
+            submitted = st.button(
+                "Submit Procurement Request",
+                type="primary"
+            )
+
+            if submitted:
+
+                clean_request_id = request_id.strip()
+
+                if not clean_request_id or not requirement.strip():
+
+                    st.error(
+                        "Request ID and Material / Service Required are required."
                     )
-        
-                st.rerun()
-        
-            else:
-                st.error(
-                    "Request ID and Material / Service Required are required."
-                )
+
+                elif any(
+                    req.get("Request ID") == clean_request_id
+                    for req in st.session_state.procurement_requests
+                ):
+
+                    st.error(
+                        f"Procurement Request {clean_request_id} already exists."
+                    )
+
+                else:
+
+                    new_request = {
+                        "Request ID": clean_request_id,
+                        "Site ID": selected_site_id,
+                        "CM ID": cm_reference,
+                        "WO ID": wo_reference,
+                        "Asset": asset,
+                        "Requirement": requirement.strip(),
+                        "Requirement Type": requirement_type,
+                        "Justification": justification.strip(),
+                        "Estimated Cost": estimated_cost,
+                        "Priority": priority,
+                        "Document": document_type,
+                        "Status": procurement_status
+                    }
+
+                    st.session_state.procurement_requests.append(
+                        new_request
+                    )
+
+                    st.session_state.procurement_success_message = (
+                        f"Procurement Request {clean_request_id} submitted successfully."
+                    )
+
+                    st.rerun()
+
+    else:
+        st.info(
+            "No corrective maintenance requiring procurement for the selected site."
+        )
 
 elif page == "Maintenance History":
 
