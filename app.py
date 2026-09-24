@@ -1,5 +1,9 @@
 import streamlit as st
 import pandas as pd
+from supabase import create_client
+
+# SUPABASE CONNECTION TEST
+# Paste the connection test block here
 
 # -----------------------------
 # SESSION DATA
