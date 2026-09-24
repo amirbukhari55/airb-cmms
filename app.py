@@ -556,6 +556,84 @@ elif page == "Asset Register":
             use_container_width=True,
             hide_index=True
         )
+        
+        if st.button("Import Assets into CMMS", type="primary"):
+
+            imported_count = 0
+            skipped_count = 0
+            new_sites_count = 0
+
+            # Register sites found in Excel.
+            for site_name in import_df["Site"].dropna().unique():
+
+                site_name = str(site_name).strip()
+
+                existing_site = next(
+                    (
+                        site for site in st.session_state.sites
+                        if site["Site Name"] == site_name
+                    ),
+                    None
+                )
+
+                if existing_site is None:
+
+                    new_site_id = f"SITE-{len(st.session_state.sites) + 1:03d}"
+
+                    st.session_state.sites.append({
+                        "Site ID": new_site_id,
+                        "Site Name": site_name,
+                        "Location": "",
+                        "Plant Type": "Other",
+                        "Status": "Active"
+                    })
+
+                    new_sites_count += 1
+
+            # Import equipment records.
+            for _, row in import_df.iterrows():
+
+                asset_id = str(row["Tag No"]).strip()
+                site_name = str(row["Site"]).strip()
+
+                site_record = next(
+                    site for site in st.session_state.sites
+                    if site["Site Name"] == site_name
+                )
+
+                existing_asset = any(
+                    asset["Asset ID"] == asset_id
+                    and asset.get("Site ID") == site_record["Site ID"]
+                    for asset in st.session_state.assets
+                )
+
+                if existing_asset:
+                    skipped_count += 1
+                    continue
+
+                st.session_state.assets.append({
+                    "Asset ID": asset_id,
+                    "Asset Name": str(row["Description"]).strip(),
+                    "Site ID": site_record["Site ID"],
+                    "Site": site_name,
+                    "Location": str(row["Location"]),
+                    "Asset Type": "Other",
+                    "Status": "Active",
+                    "Equipment Status": str(row["Status"])
+                })
+
+                imported_count += 1
+
+            st.session_state.asset_import_message = (
+                f"Import completed: {imported_count} assets added, "
+                f"{skipped_count} duplicates skipped, "
+                f"{new_sites_count} new sites registered."
+            )
+
+            st.rerun()
+
+        if "asset_import_message" in st.session_state:
+            st.success(st.session_state.pop("asset_import_message"))
 
     st.divider()
 
