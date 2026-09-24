@@ -951,37 +951,71 @@ elif page == "Corrective Maintenance":
             type="primary"
         )
 
-        if submitted:
+                if submitted:
             if cm_id and problem:
 
-                new_cm = {
-                    "CM ID": cm_id,
-                    "WO ID": wo_id,
-                    "Asset": asset,
-                    "Problem": problem,
-                    "Failure Type": failure_type,
-                    "Priority": priority,
-                    "Downtime": downtime,
-                    "Procurement": (
-                        "Required"
-                        if procurement_required == "Yes"
-                        else "Not Required"
-                    ),
-                    "Status": status
-                }
-
-                st.session_state.corrective_maintenance.append(new_cm)
-
-                st.success(
-                    f"Corrective Maintenance {cm_id} submitted successfully."
+                # Prevent duplicate CM ID
+                cm_exists = any(
+                    cm["CM ID"] == cm_id
+                    for cm in st.session_state.corrective_maintenance
                 )
 
-                if procurement_required == "Yes":
-                    st.info(
-                        "Procurement request flagged for PR / IER generation."
+                if cm_exists:
+                    st.error(
+                        f"Corrective Maintenance {cm_id} already exists."
                     )
 
-                st.rerun()
+                else:
+                    new_cm = {
+                        "CM ID": cm_id,
+                        "WO ID": wo_id,
+                        "Asset": asset,
+                        "Problem": problem,
+                        "Failure Type": failure_type,
+                        "Priority": priority,
+                        "Downtime": downtime,
+                        "Procurement": (
+                            "Required"
+                            if procurement_required == "Yes"
+                            else "Not Required"
+                        ),
+                        "Status": status
+                    }
+
+                    st.session_state.corrective_maintenance.append(new_cm)
+
+                    # Automatically create procurement request
+                    if procurement_required == "Yes":
+
+                        request_id = f"MPR-{cm_id}"
+
+                        procurement_exists = any(
+                            request["CM ID"] == cm_id
+                            for request in st.session_state.procurement_requests
+                        )
+
+                        if not procurement_exists:
+
+                            new_procurement = {
+                                "Request ID": request_id,
+                                "CM ID": cm_id,
+                                "WO ID": wo_id,
+                                "Asset": asset,
+                                "Requirement": item_required,
+                                "Priority": priority,
+                                "Document": "Pending",
+                                "Status": "New"
+                            }
+
+                            st.session_state.procurement_requests.append(
+                                new_procurement
+                            )
+
+                    st.success(
+                        f"Corrective Maintenance {cm_id} submitted successfully."
+                    )
+
+                    st.rerun()
 
             else:
                 st.error(
