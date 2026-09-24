@@ -5,9 +5,20 @@ import pandas as pd
 # SESSION DATA
 # -----------------------------
 
-if "assets" not in st.session_state:
+
 if "sites" not in st.session_state:
-        st.session_state.sites = [
+    st.session_state.sites = [
+        {
+            "Site ID": "SITE-001",
+            "Site Name": "Water Treatment Plant 1",
+            "Location": "Malaysia",
+            "Plant Type": "WTP",
+            "Status": "Active"
+        }
+    ]
+
+if "assets" not in st.session_state:
+    st.session_state.assets = [
             {
                 "Site ID": "SITE-001",
                 "Site Name": "Water Treatment Plant 1",
