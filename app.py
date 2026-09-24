@@ -628,6 +628,22 @@ elif page == "Work Orders":
                 f"**Work:** {selected_wo['Work']}"
             )
 
+            create_cm = st.button(
+                "Create Corrective Maintenance",
+                key="create_cm_from_wo"
+            )
+
+            if create_cm:
+                st.session_state.cm_from_wo = {
+                    "WO ID": selected_wo["WO ID"],
+                    "Asset": selected_wo["Asset"],
+                    "Technician": selected_wo["Assigned To"]
+                }
+
+                st.session_state.page = "Corrective Maintenance"
+
+                st.rerun()
+            
             new_status = st.selectbox(
                 "New Status",
                 [
