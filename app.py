@@ -206,6 +206,32 @@ st.set_page_config(
 st.sidebar.title("🔧 AIRB CMMS")
 st.sidebar.caption("Computerized Maintenance Management System")
 
+# --------------------------------
+# SITE SELECTION
+# --------------------------------
+site_options = {
+    "ALL": "All Sites (Management View)"
+}
+
+for site in st.session_state.sites:
+    if site["Status"] == "Active":
+        site_options[site["Site ID"]] = (
+            f"{site['Site ID']} - {site['Site Name']}"
+        )
+
+selected_site_id = st.sidebar.selectbox(
+    "Select Operational Site",
+    options=list(site_options.keys()),
+    format_func=lambda site_id: site_options[site_id],
+    key="selected_site_id"
+)
+
+st.sidebar.caption(
+    f"Current view: {site_options[selected_site_id]}"
+)
+
+st.sidebar.divider()
+
 if "page" not in st.session_state:
     st.session_state.page = "Dashboard"
 
