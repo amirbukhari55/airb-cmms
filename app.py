@@ -1117,7 +1117,83 @@ elif page == "Procurement":
     )
 
     st.divider()
+    
+    # -----------------------------
+    # UPDATE EXISTING PROCUREMENT REQUEST
+    # -----------------------------
+    st.subheader("Update Procurement Request")
 
+    request_options = [
+        req["Request ID"]
+        for req in st.session_state.procurement_requests
+        if req["Status"] != "Completed"
+    ]
+
+    if request_options:
+
+        selected_request_id = st.selectbox(
+            "Select Existing Request",
+            request_options,
+            key="update_procurement_request"
+        )
+
+        selected_request = next(
+            req for req in st.session_state.procurement_requests
+            if req["Request ID"] == selected_request_id
+        )
+
+        with st.container(border=True):
+
+            st.write(f"**CM ID:** {selected_request['CM ID']}")
+            st.write(f"**WO ID:** {selected_request['WO ID']}")
+            st.write(f"**Asset:** {selected_request['Asset']}")
+            st.write(f"**Requirement:** {selected_request['Requirement']}")
+            st.write(f"**Current Status:** {selected_request['Status']}")
+
+            updated_document = st.selectbox(
+                "Procurement Document",
+                ["Pending", "PR", "IER"],
+                index=(
+                    ["Pending", "PR", "IER"].index(
+                        selected_request["Document"]
+                    )
+                    if selected_request["Document"] in ["Pending", "PR", "IER"]
+                    else 0
+                ),
+                key="update_procurement_document"
+            )
+
+            updated_status = st.selectbox(
+                "New Procurement Status",
+                [
+                    "New",
+                    "Pending Engineer Review",
+                    "Pending Approval",
+                    "PR / IER Issued",
+                    "PO Issued",
+                    "Completed"
+                ],
+                key="update_procurement_status"
+            )
+
+            if st.button(
+                "Update Procurement Request",
+                type="primary"
+            ):
+
+                selected_request["Document"] = updated_document
+                selected_request["Status"] = updated_status
+
+                st.success(
+                    f"{selected_request_id} updated to {updated_status}."
+                )
+
+                st.rerun()
+
+    else:
+        st.info("No active procurement requests available.")
+
+    st.divider()
     # -----------------------------
     # PROCUREMENT REQUEST DETAILS
     # -----------------------------
