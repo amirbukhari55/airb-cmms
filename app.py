@@ -78,6 +78,7 @@ with st.sidebar.expander("Database Connection", expanded=False):
 # LOAD SITES FROM SUPABASE
 # --------------------------------
 
+
 if "sites" not in st.session_state:
 
     try:
@@ -93,6 +94,13 @@ if "sites" not in st.session_state:
         for row in response.data:
 
             site = row.get("site_data") or {}
+
+            if isinstance(site, str):
+                import json
+                site = json.loads(site)
+
+            if not isinstance(site, dict):
+                site = {}
 
             st.session_state.sites.append({
                 "Site ID": row["site_id"],
