@@ -527,6 +527,20 @@ elif page == "Asset Register":
 
         # Remove completely empty rows.
         import_df = import_df.dropna(how="all")
+        
+        st.write("### Sites Found in Excel")
+
+        site_summary = (
+            import_df.groupby("Site", dropna=False)
+            .size()
+            .reset_index(name="Asset Count")
+        )
+
+        st.dataframe(
+            site_summary,
+            use_container_width=True,
+            hide_index=True
+        )
 
         # Keep rows with an equipment tag.
         import_df = import_df[
