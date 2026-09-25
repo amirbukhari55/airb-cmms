@@ -79,62 +79,48 @@ with st.sidebar.expander("Database Connection", expanded=False):
 # LOAD SITES FROM SUPABASE
 # --------------------------------
 
-if "sites" not in st.session_state:
-    try:
-        response = (
-            supabase.table("sites")
-            .select("site_id, site_name, site_data")
-            .order("site_id")
-            .execute()
-        )
+def load_sites_from_supabase():
+    response = (
+        supabase.table("sites")
+        .select("site_id, site_name, site_data")
+        .order("site_id")
+        .execute()
+    )
 
-        loaded_sites = []
+    loaded_sites = []
 
-        st.write("Supabase response type:", type(response.data).__name__)
-        st.write("Supabase response:", response.data)
+    for row in response.data or []:
+        if not isinstance(row, dict):
+            continue
 
-        for row in response.data or []:
+        site_data = row.get("site_data") or {}
 
-            # Ensure each database row is a dictionary.
-            if isinstance(row, str):
-                try:
-                    row = json.loads(row)
-                except (json.JSONDecodeError, TypeError):
-                    continue
+        if isinstance(site_data, str):
+            try:
+                site_data = json.loads(site_data)
+            except (json.JSONDecodeError, TypeError):
+                site_data = {}
 
-            if not isinstance(row, dict):
-                continue
+        if not isinstance(site_data, dict):
+            site_data = {}
 
-            # site_data may be a JSON object or a JSON string.
-            site = row.get("site_data") or {}
+        loaded_sites.append({
+            "Site ID": row.get("site_id", ""),
+            "Site Name": row.get("site_name", ""),
+            "Location": site_data.get("Location", ""),
+            "Plant Type": site_data.get("Plant Type", "Other"),
+            "Status": site_data.get("Status", "Active")
+        })
 
-            # Handle JSON that has been encoded more than once.
-            for _ in range(3):
-                if not isinstance(site, str):
-                    break
-                try:
-                    site = json.loads(site)
-                except (json.JSONDecodeError, TypeError):
-                    site = {}
-                    break
+    return loaded_sites
 
-            if not isinstance(site, dict):
-                site = {}
 
-            loaded_sites.append({
-                "Site ID": row.get("site_id", ""),
-                "Site Name": row.get("site_name", ""),
-                "Location": site.get("Location", ""),
-                "Plant Type": site.get("Plant Type", "Other"),
-                "Status": site.get("Status", "Active")
-            })
+try:
+    st.session_state.sites = load_sites_from_supabase()
 
-        st.session_state.sites = loaded_sites
-
-    except Exception as e:
-        st.error(f"Unable to load sites from Supabase: {e}")
-        st.exception(e)
-        st.stop()
+except Exception as e:
+    st.error(f"Unable to load sites from Supabase: {e}")
+    st.stop()
 
 if "assets" not in st.session_state:
     st.session_state.assets = [
