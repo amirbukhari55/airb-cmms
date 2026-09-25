@@ -79,42 +79,55 @@ with st.sidebar.expander("Database Connection", expanded=False):
 # LOAD SITES FROM SUPABASE
 # --------------------------------
 
-
 if "sites" not in st.session_state:
-
     try:
         response = (
             supabase.table("sites")
-            .select("*")
+            .select("site_id, site_name, site_data")
             .order("site_id")
             .execute()
         )
 
-        st.session_state.sites = []
+        loaded_sites = []
 
-        for row in response.data:
+        for row in response.data or []:
 
+            # Ensure each database row is a dictionary.
+            if isinstance(row, str):
+                row = json.loads(row)
+
+            if not isinstance(row, dict):
+                continue
+
+            # site_data may be a JSON object or a JSON string.
             site = row.get("site_data") or {}
 
-            if isinstance(site, str):
+            # Handle JSON that has been encoded more than once.
+            for _ in range(3):
+                if not isinstance(site, str):
+                    break
                 try:
                     site = json.loads(site)
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, TypeError):
                     site = {}
-            
+                    break
+
             if not isinstance(site, dict):
                 site = {}
 
-            st.session_state.sites.append({
-                "Site ID": row["site_id"],
-                "Site Name": row["site_name"],
+            loaded_sites.append({
+                "Site ID": row.get("site_id", ""),
+                "Site Name": row.get("site_name", ""),
                 "Location": site.get("Location", ""),
                 "Plant Type": site.get("Plant Type", "Other"),
                 "Status": site.get("Status", "Active")
             })
 
+        st.session_state.sites = loaded_sites
+
     except Exception as e:
         st.error(f"Unable to load sites from Supabase: {e}")
+        st.exception(e)
         st.stop()
 
 if "assets" not in st.session_state:
