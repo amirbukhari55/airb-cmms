@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from supabase import create_client
+import json
 
 # -----------------------------
 # ADMIN LOGIN
@@ -96,7 +97,6 @@ if "sites" not in st.session_state:
             site = row.get("site_data") or {}
 
             if isinstance(site, str):
-                import json
                 site = json.loads(site)
 
             if not isinstance(site, dict):
