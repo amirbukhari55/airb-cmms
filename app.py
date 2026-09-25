@@ -90,6 +90,9 @@ if "sites" not in st.session_state:
 
         loaded_sites = []
 
+        st.write("Supabase response type:", type(response.data).__name__)
+        st.write("Supabase response:", response.data)
+
         for row in response.data or []:
 
             # Ensure each database row is a dictionary.
