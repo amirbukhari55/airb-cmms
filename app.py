@@ -94,7 +94,10 @@ if "sites" not in st.session_state:
 
             # Ensure each database row is a dictionary.
             if isinstance(row, str):
-                row = json.loads(row)
+                try:
+                    row = json.loads(row)
+                except (json.JSONDecodeError, TypeError):
+                    continue
 
             if not isinstance(row, dict):
                 continue
