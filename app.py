@@ -97,8 +97,11 @@ if "sites" not in st.session_state:
             site = row.get("site_data") or {}
 
             if isinstance(site, str):
-                site = json.loads(site)
-
+                try:
+                    site = json.loads(site)
+                except json.JSONDecodeError:
+                    site = {}
+            
             if not isinstance(site, dict):
                 site = {}
 
