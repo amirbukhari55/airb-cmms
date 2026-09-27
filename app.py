@@ -57,17 +57,28 @@ def get_supabase_client():
 supabase = get_supabase_client()
 
 with st.sidebar.expander("Database Connection", expanded=False):
-    if st.button("Test Supabase Connection"):
-        try:
-            result = (
-                supabase.table("sites")
-                .select("site_id")
-                .limit(1)
-                .execute()
+    
+if st.button("Test Supabase Connection"):
+    try:
+        result = (
+            supabase.table("sites")
+            .select("site_id, site_name, site_data")
+            .execute()
+        )
+
+        st.write("Records returned:", len(result.data or []))
+        st.json(result.data or [])
+
+        if result.data:
+            st.success("Supabase connected and site records are readable.")
+        else:
+            st.warning(
+                "Supabase connection works, but no site records are visible "
+                "to the configured database key."
             )
-            st.success("Supabase connected successfully!")
-        except Exception as e:
-            st.error(f"Database connection failed: {e}")
+
+    except Exception as e:
+        st.error(f"Database query failed: {e}")
 
 # -----------------------------
 # SESSION DATA
@@ -75,11 +86,12 @@ with st.sidebar.expander("Database Connection", expanded=False):
 
 
 
+
 # --------------------------------
 # LOAD SITES FROM SUPABASE
 # --------------------------------
 
-def load_sites_from_supabase():
+try:
     response = (
         supabase.table("sites")
         .select("site_id, site_name, site_data")
@@ -90,33 +102,23 @@ def load_sites_from_supabase():
     loaded_sites = []
 
     for row in response.data or []:
-        if not isinstance(row, dict):
-            continue
+        site = row.get("site_data") or {}
 
-        site_data = row.get("site_data") or {}
+        if isinstance(site, str):
+            site = json.loads(site)
 
-        if isinstance(site_data, str):
-            try:
-                site_data = json.loads(site_data)
-            except (json.JSONDecodeError, TypeError):
-                site_data = {}
-
-        if not isinstance(site_data, dict):
-            site_data = {}
+        if not isinstance(site, dict):
+            site = {}
 
         loaded_sites.append({
-            "Site ID": row.get("site_id", ""),
-            "Site Name": row.get("site_name", ""),
-            "Location": site_data.get("Location", ""),
-            "Plant Type": site_data.get("Plant Type", "Other"),
-            "Status": site_data.get("Status", "Active")
+            "Site ID": row["site_id"],
+            "Site Name": row["site_name"],
+            "Location": site.get("Location", ""),
+            "Plant Type": site.get("Plant Type", "Other"),
+            "Status": site.get("Status", "Active")
         })
 
-    return loaded_sites
-
-
-try:
-    st.session_state.sites = load_sites_from_supabase()
+    st.session_state.sites = loaded_sites
 
 except Exception as e:
     st.error(f"Unable to load sites from Supabase: {e}")
