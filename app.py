@@ -58,27 +58,27 @@ supabase = get_supabase_client()
 
 with st.sidebar.expander("Database Connection", expanded=False):
     
-if st.button("Test Supabase Connection"):
-    try:
-        result = (
-            supabase.table("sites")
-            .select("site_id, site_name, site_data")
-            .execute()
-        )
-
-        st.write("Records returned:", len(result.data or []))
-        st.json(result.data or [])
-
-        if result.data:
-            st.success("Supabase connected and site records are readable.")
-        else:
-            st.warning(
-                "Supabase connection works, but no site records are visible "
-                "to the configured database key."
+    if st.button("Test Supabase Connection"):
+        try:
+            result = (
+                supabase.table("sites")
+                .select("site_id, site_name, site_data")
+                .execute()
             )
-
-    except Exception as e:
-        st.error(f"Database query failed: {e}")
+    
+            st.write("Records returned:", len(result.data or []))
+            st.json(result.data or [])
+    
+            if result.data:
+                st.success("Supabase connected and site records are readable.")
+            else:
+                st.warning(
+                    "Supabase connection works, but no site records are visible "
+                    "to the configured database key."
+                )
+    
+        except Exception as e:
+            st.error(f"Database query failed: {e}")
 
 # -----------------------------
 # SESSION DATA
