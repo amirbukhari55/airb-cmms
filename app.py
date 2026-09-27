@@ -102,17 +102,31 @@ try:
     loaded_sites = []
 
     for row in response.data or []:
+
+        # Convert a JSON string into a dictionary if necessary.
+        if isinstance(row, str):
+            try:
+                row = json.loads(row)
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+        if not isinstance(row, dict):
+            continue
+
         site = row.get("site_data") or {}
 
         if isinstance(site, str):
-            site = json.loads(site)
+            try:
+                site = json.loads(site)
+            except (json.JSONDecodeError, TypeError):
+                site = {}
 
         if not isinstance(site, dict):
             site = {}
 
         loaded_sites.append({
-            "Site ID": row["site_id"],
-            "Site Name": row["site_name"],
+            "Site ID": row.get("site_id", ""),
+            "Site Name": row.get("site_name", ""),
             "Location": site.get("Location", ""),
             "Plant Type": site.get("Plant Type", "Other"),
             "Status": site.get("Status", "Active")
