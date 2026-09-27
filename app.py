@@ -171,59 +171,11 @@ if "assets" not in st.session_state:
         st.stop()
     
 if "pm_schedules" not in st.session_state:
-    st.session_state.pm_schedules = [
-        {
-            "PM Schedule ID": "PM-001",
-            "Asset": "P-101 - Raw Water Pump 1",
-            "Maintenance Type": "Preventive Maintenance",
-            "Frequency": "Monthly",
-            "Next Due Date": "2026-09-22",
-            "Assigned Technician": "Technician A",
-            "Status": "Active"
-        },
-        {
-            "PM Schedule ID": "PM-002",
-            "Asset": "BL-02 - Blower 2",
-            "Maintenance Type": "Preventive Maintenance",
-            "Frequency": "Monthly",
-            "Next Due Date": "2026-09-24",
-            "Assigned Technician": "Technician B",
-            "Status": "Active"
-        }
-    ]
+    st.session_state.pm_schedules = []
+    
 if "work_orders" not in st.session_state:
-        st.session_state.work_orders = [
-            {
-                "WO ID": "WO-001",
-                "Asset": "P-101",
-                "Work": "Pump Inspection",
-                "Type": "Preventive Maintenance",
-                "Priority": "Normal",
-                "Assigned To": "Technician A",
-                "Status": "Assigned",
-                "Estimated Hours": 1.0
-            },
-            {
-                "WO ID": "WO-002",
-                "Asset": "BL-02",
-                "Work": "Investigate abnormal vibration",
-                "Type": "Inspection",
-                "Priority": "High",
-                "Assigned To": "Technician B",
-                "Status": "In Progress",
-                "Estimated Hours": 2.0
-            },
-            {
-                "WO ID": "WO-003",
-                "Asset": "RO-P03",
-                "Work": "Mechanical seal inspection",
-                "Type": "Corrective Maintenance",
-                "Priority": "Urgent",
-                "Assigned To": "Technician C",
-                "Status": "Pending Engineer Review",
-                "Estimated Hours": 4.0
-            }
-        ]
+    st.session_state.work_orders = []
+    
 if "corrective_maintenance" not in st.session_state:
     st.session_state.corrective_maintenance = [
         {
