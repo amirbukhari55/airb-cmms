@@ -985,40 +985,44 @@ elif page == "Asset Register":
         st.success(st.session_state.pop("asset_success_message"))
 
 
+
 elif page == "PM Schedule":
 
     st.title("Preventive Maintenance Schedule")
     st.caption("Plan, assign and monitor preventive maintenance activities.")
 
     # --------------------------------
-    # NORMALISE EXISTING PM RECORDS
+    # LOAD PM SCHEDULES FROM SUPABASE
     # --------------------------------
-    # Supports records created using the old "PM ID" field.
+    try:
+        response = (
+            supabase.table("pm_schedules")
+            .select("pm_schedule_id, site_id, pm_data")
+            .order("pm_schedule_id")
+            .execute()
+        )
 
-    for pm in st.session_state.pm_schedules:
+        loaded_pm = []
 
-        if not pm.get("PM Schedule ID") and pm.get("PM ID"):
-            pm["PM Schedule ID"] = pm["PM ID"]
+        for row in response.data or []:
+            pm = row.get("pm_data") or {}
 
-        pm.pop("PM ID", None)
+            if not isinstance(pm, dict):
+                continue
 
-        # Store asset ID consistently, e.g. P-101.
-        pm["Asset"] = pm["Asset"].split(" - ")[0]
+            pm["PM Schedule ID"] = row["pm_schedule_id"]
+            pm["Site ID"] = row["site_id"]
 
-    # Remove records with no valid ID.
-    st.session_state.pm_schedules = [
-        pm for pm in st.session_state.pm_schedules
-        if pm.get("PM Schedule ID")
-    ]
-    
-    # Remove duplicate PM Schedule IDs, keeping the latest record.
-    unique_pm = {}
+            if pm.get("Asset"):
+                pm["Asset"] = str(pm["Asset"]).split(" - ")[0]
 
-    for pm in st.session_state.pm_schedules:
-        unique_pm[pm["PM Schedule ID"]] = pm
+            loaded_pm.append(pm)
 
-    st.session_state.pm_schedules = list(unique_pm.values())
-    
+        st.session_state.pm_schedules = loaded_pm
+
+    except Exception as e:
+        st.error(f"Unable to load PM schedules from Supabase: {e}")
+        st.stop()
 
     # --------------------------------
     # FILTER PM SCHEDULE BY SITE
@@ -1026,22 +1030,15 @@ elif page == "PM Schedule":
     if selected_site_id == "ALL":
         visible_pm = st.session_state.pm_schedules
     else:
-        site_asset_ids = {
-            asset["Asset ID"]
-            for asset in st.session_state.assets
-            if asset.get("Site ID") == selected_site_id
-        }
-
         visible_pm = [
             pm for pm in st.session_state.pm_schedules
-            if pm.get("Asset") in site_asset_ids
+            if pm.get("Site ID") == selected_site_id
         ]
 
     # --------------------------------
     # DISPLAY PM SCHEDULE
     # --------------------------------
     st.subheader("Upcoming Preventive Maintenance")
-
     st.caption(f"Displaying {len(visible_pm)} PM schedules")
 
     st.dataframe(
@@ -1053,6 +1050,13 @@ elif page == "PM Schedule":
     # --------------------------------
     # GENERATE WORK ORDERS
     # --------------------------------
+    st.subheader("Generate Work Orders")
+
+    st.caption(
+        "Work orders are not yet saved to Supabase. "
+        "We will connect the Work Orders module next."
+    )
+
     if st.button("Generate Work Orders for Due PM"):
 
         generated_count = 0
@@ -1101,8 +1105,6 @@ elif page == "PM Schedule":
 
     st.divider()
 
-
-    
     # --------------------------------
     # CREATE PM SCHEDULE
     # --------------------------------
@@ -1148,6 +1150,7 @@ elif page == "PM Schedule":
 
         else:
             with st.form("pm_schedule_form"):
+
                 col1, col2 = st.columns(2)
 
                 with col1:
@@ -1209,43 +1212,58 @@ elif page == "PM Schedule":
                     "Create PM Schedule"
                 )
 
-                if submitted:
-                    clean_pm_id = pm_id.strip()
+            if submitted:
 
-                    if not clean_pm_id or not task.strip():
-                        st.error(
-                            "PM Schedule ID and PM Task Name are required."
+                clean_pm_id = pm_id.strip()
+
+                if not clean_pm_id or not task.strip():
+                    st.error(
+                        "PM Schedule ID and PM Task Name are required."
+                    )
+
+                elif any(
+                    pm.get("PM Schedule ID") == clean_pm_id
+                    for pm in st.session_state.pm_schedules
+                ):
+                    st.error("This PM Schedule ID already exists.")
+
+                else:
+                    new_pm = {
+                        "PM Schedule ID": clean_pm_id,
+                        "Site ID": selected_site_id,
+                        "Asset": asset_lookup[asset],
+                        "Task": task.strip(),
+                        "Maintenance Type": maintenance_type,
+                        "Frequency": frequency,
+                        "Next Due Date": start_date.strftime("%Y-%m-%d"),
+                        "Assigned Technician": technician,
+                        "Estimated Hours": duration,
+                        "Instructions": instructions,
+                        "Status": "Active"
+                    }
+
+                    try:
+                        (
+                            supabase.table("pm_schedules")
+                            .insert({
+                                "pm_schedule_id": clean_pm_id,
+                                "site_id": selected_site_id,
+                                "pm_data": new_pm
+                            })
+                            .execute()
                         )
 
-                    elif any(
-                        pm.get("PM Schedule ID") == clean_pm_id
-                        for pm in st.session_state.pm_schedules
-                    ):
-                        st.error("This PM Schedule ID already exists.")
-
-                    else:
-                        new_pm = {
-                            "PM Schedule ID": clean_pm_id,
-                            "Site ID": selected_site_id,
-                            "Asset": asset_lookup[asset],
-                            "Task": task.strip(),
-                            "Maintenance Type": maintenance_type,
-                            "Frequency": frequency,
-                            "Next Due Date": start_date.strftime("%Y-%m-%d"),
-                            "Assigned Technician": technician,
-                            "Estimated Hours": duration,
-                            "Instructions": instructions,
-                            "Status": "Active"
-                        }
-
-                        st.session_state.pm_schedules.append(new_pm)
-
                         st.session_state.pm_success_message = (
-                            f"PM Schedule {clean_pm_id} created "
-                            f"successfully under {site_name}."
+                            f"PM Schedule {clean_pm_id} saved successfully "
+                            f"under {site_name}."
                         )
 
                         st.rerun()
+
+                    except Exception as e:
+                        st.error(
+                            f"Unable to save PM schedule to Supabase: {e}"
+                        )
 
     if "pm_success_message" in st.session_state:
         st.success(st.session_state.pop("pm_success_message"))
