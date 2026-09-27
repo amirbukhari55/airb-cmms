@@ -138,39 +138,37 @@ except Exception as e:
     st.error(f"Unable to load sites from Supabase: {e}")
     st.stop()
 
+
 if "assets" not in st.session_state:
-    st.session_state.assets = [
-            {
-                "Site ID": "SITE-001",
-                "Site Name": "Water Treatment Plant 1",
-                "Location": "Malaysia",
-                "Plant Type": "WTP",
-                "Status": "Active"
-            }
-        ]
-    st.session_state.assets = [
-        {
-            "Asset ID": "P-101",
-            "Asset Name": "Raw Water Pump 1",
-            "Location": "WTP",
-            "Asset Type": "Pump",
-            "Status": "Active"
-        },
-        {
-            "Asset ID": "BL-02",
-            "Asset Name": "Blower 2",
-            "Location": "STP",
-            "Asset Type": "Blower",
-            "Status": "Active"
-        },
-        {
-            "Asset ID": "RO-P03",
-            "Asset Name": "RO High Pressure Pump",
-            "Location": "WRP",
-            "Asset Type": "Pump",
-            "Status": "Active"
-        }
-    ]
+    try:
+        response = (
+            supabase.table("assets")
+            .select("asset_id, site_id, asset_data")
+            .order("asset_id")
+            .execute()
+        )
+
+        loaded_assets = []
+
+        for row in response.data or []:
+            asset = row.get("asset_data") or {}
+
+            if isinstance(asset, str):
+                asset = json.loads(asset)
+
+            if not isinstance(asset, dict):
+                asset = {}
+
+            asset["Asset ID"] = row["asset_id"]
+            asset["Site ID"] = row["site_id"]
+
+            loaded_assets.append(asset)
+
+        st.session_state.assets = loaded_assets
+
+    except Exception as e:
+        st.error(f"Unable to load assets from Supabase: {e}")
+        st.stop()
     
 if "pm_schedules" not in st.session_state:
     st.session_state.pm_schedules = [
