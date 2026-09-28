@@ -1501,10 +1501,12 @@ elif page == "Work Orders":
                     uploaded_maintenance_file.name
                 ).name
 
+                file_extension = Path(filename).suffix.lower()
+
                 storage_path = (
                     f"{document_site_id}/"
                     f"{document_wo_id}/"
-                    f"{uuid4().hex}_{filename}"
+                    f"{uuid4().hex}{file_extension}"
                 )
 
                 file_content = uploaded_maintenance_file.getvalue()
