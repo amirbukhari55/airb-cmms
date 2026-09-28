@@ -960,10 +960,11 @@ elif page == "Asset Register":
             asset_id = st.text_input("Asset ID")
             asset_name = st.text_input("Asset Name")
 
-            asset_type = st.selectbox(
+                        asset_type = st.selectbox(
                 "Asset Type",
                 [
                     "Pump",
+                    "RO High-Pressure Pump",
                     "Blower",
                     "Motor",
                     "Valve",
