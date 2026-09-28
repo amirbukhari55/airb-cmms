@@ -1422,8 +1422,22 @@ elif page == "Work Orders":
     ]
 
     st.dataframe(
-        active_work_orders,
-        use_container_width=True
+        [
+            {
+                "WO ID": wo.get("WO ID"),
+                "Asset": wo.get("Asset"),
+                "Work": wo.get("Work"),
+                "Type": wo.get("Type"),
+                "Status": wo.get("Status"),
+                "Priority": wo.get("Priority"),
+                "Assigned To": wo.get("Assigned To"),
+                "Estimated Hours": wo.get("Estimated Hours"),
+                "Actual Hours": wo.get("Actual Hours", 0),
+            }
+            for wo in active_work_orders
+        ],
+        use_container_width=True,
+        hide_index=True
     )
 
     st.divider()
