@@ -229,6 +229,41 @@ if "procurement_requests" not in st.session_state:
         }
     ]
 
+if "cm_procurement_loaded" not in st.session_state:
+    try:
+        cm_response = (
+            supabase.table("corrective_maintenance")
+            .select("cm_id, site_id, cm_data")
+            .execute()
+        )
+
+        st.session_state.corrective_maintenance = []
+
+        for row in cm_response.data or []:
+            record = row.get("cm_data") or {}
+            record["CM ID"] = row["cm_id"]
+            record["Site ID"] = row["site_id"]
+            st.session_state.corrective_maintenance.append(record)
+
+        procurement_response = (
+            supabase.table("procurement_requests")
+            .select("request_id, site_id, request_data")
+            .execute()
+        )
+
+        st.session_state.procurement_requests = []
+
+        for row in procurement_response.data or []:
+            record = row.get("request_data") or {}
+            record["Request ID"] = row["request_id"]
+            record["Site ID"] = row["site_id"]
+            st.session_state.procurement_requests.append(record)
+
+        st.session_state.cm_procurement_loaded = True
+
+    except Exception as e:
+        st.error(f"Unable to load CM / Procurement records: {e}")
+        st.stop()
 if "procurement_documents" not in st.session_state:
     st.session_state.procurement_documents = []
 
@@ -2064,35 +2099,64 @@ elif page == "Corrective Maintenance":
                             "Status": status
                         }
 
-                        st.session_state.corrective_maintenance.append(new_cm)
+                        # Prepare procurement request, if required.
+                        new_procurement = None
 
-                        # Automatically create procurement request
                         if procurement_required == "Yes":
                             request_id = f"MPR-{clean_cm_id}"
 
-                            procurement_exists = any(
-                                request.get("CM ID") == clean_cm_id
-                                for request in st.session_state.procurement_requests
+                            new_procurement = {
+                                "Request ID": request_id,
+                                "Site ID": selected_site_id,
+                                "CM ID": clean_cm_id,
+                                "WO ID": wo_id,
+                                "Asset": asset,
+                                "Requirement": item_required.strip(),
+                                "Justification": justification.strip(),
+                                "Priority": priority,
+                                "Document": "Pending",
+                                "Status": "New"
+                            }
+
+                        # Save to Supabase before updating the screen.
+                        try:
+                            supabase.table("corrective_maintenance").insert({
+                                "cm_id": clean_cm_id,
+                                "site_id": selected_site_id,
+                                "cm_data": new_cm
+                            }).execute()
+
+                        except Exception as e:
+                            st.error(
+                                f"Unable to save corrective maintenance "
+                                f"to Supabase: {e}"
                             )
+                            st.stop()
 
-                            if not procurement_exists:
-                                new_procurement = {
-                                    "Request ID": request_id,
-                                    "Site ID": selected_site_id,
-                                    "Site ID": selected_site_id,
-                                    "CM ID": clean_cm_id,
-                                    "WO ID": wo_id,
-                                    "Asset": asset,
-                                    "Requirement": item_required.strip(),
-                                    "Justification": justification.strip(),
-                                    "Priority": priority,
-                                    "Document": "Pending",
-                                    "Status": "New"
-                                }
+                        if new_procurement is not None:
+                            try:
+                                supabase.table("procurement_requests").insert({
+                                    "request_id": request_id,
+                                    "site_id": selected_site_id,
+                                    "request_data": new_procurement
+                                }).execute()
 
-                                st.session_state.procurement_requests.append(
-                                    new_procurement
+                            except Exception as e:
+                                st.error(
+                                    f"CM {clean_cm_id} was saved to Supabase, "
+                                    f"but its procurement request was not. "
+                                    f"Do not resubmit the same CM ID. "
+                                    f"Error: {e}"
                                 )
+                                st.stop()
+
+                        # Update current session after successful saves.
+                        st.session_state.corrective_maintenance.append(new_cm)
+
+                        if new_procurement is not None:
+                            st.session_state.procurement_requests.append(
+                                new_procurement
+                            )
 
                         st.session_state.cm_success_message = (
                             f"Corrective Maintenance {clean_cm_id} "
