@@ -2893,7 +2893,12 @@ elif page == "Procurement":
                 supabase.table("procurement_documents")
                 .select("*")
                 .eq("request_id", document_request_id)
-                .eq("site_id", selected_site_id)
+                .eq("site_id", procurement_site_id(
+                    next(
+                        req for req in site_requests
+                        if req["Request ID"] == document_request_id
+                    )
+                ))
                 .order("uploaded_on", desc=True)
                 .execute()
             )
