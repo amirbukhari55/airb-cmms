@@ -2830,7 +2830,7 @@ elif page == "Procurement":
                     file_extension = Path(filename).suffix.lower()
 
                     storage_path = (
-                        f"{selected_site_id}/procurement/"
+                        f"{document_site_id}/procurement/"
                         f"{document_request_id}/"
                         f"{uuid4().hex}{file_extension}"
                     )
