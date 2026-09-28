@@ -1938,6 +1938,32 @@ elif page == "Work Orders":
                     )
                     st.stop()
 
+                # Require all inspection items to be checked before engineer review
+                if new_status == "Pending Engineer Review":
+                
+                    unchecked_items = [
+                        item for item, result in inspection_results.items()
+                        if result == "Not Checked"
+                    ]
+                
+                    failed_items = [
+                        item for item, result in inspection_results.items()
+                        if result == "Fail"
+                    ]
+                
+                    if unchecked_items:
+                        st.error(
+                            "Complete all inspection items before submitting "
+                            "the Work Order for engineer review."
+                        )
+                        st.stop()
+                
+                    if failed_items:
+                        st.error(
+                            "Failed inspection items require corrective attention "
+                            "before submitting the Work Order for engineer review."
+                        )
+                        st.stop()
                 updated_wo = selected_wo.copy()
                 updated_wo["Status"] = new_status
                 updated_wo["Actual Hours"] = actual_hours
