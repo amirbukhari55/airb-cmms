@@ -1455,9 +1455,15 @@ elif page == "Work Orders":
 
     with st.container(border=True):
 
+        document_wo_records = [
+            wo for wo in st.session_state.work_orders
+            if selected_site_id == "ALL"
+            or wo.get("Site ID") == selected_site_id
+        ]
+        
         document_wo_options = [
             wo["WO ID"]
-            for wo in site_work_orders
+            for wo in document_wo_records
         ]
 
         document_wo_id = st.selectbox(
@@ -1496,7 +1502,7 @@ elif page == "Work Orders":
 
             else:
                 selected_document_wo = next(
-                    wo for wo in site_work_orders
+                    wo for wo in document_wo_records
                     if wo["WO ID"] == document_wo_id
                 )
 
@@ -1589,7 +1595,7 @@ elif page == "Work Orders":
                     "site_id",
                     next(
                         wo["Site ID"]
-                        for wo in site_work_orders
+                        for wo in document_wo_records
                         if wo["WO ID"] == document_wo_id
                     )
                 )
