@@ -1832,10 +1832,48 @@ elif page == "Work Orders":
 
             if update_wo:
 
+                # Save the safety checklist with this Work Order
+                safety_record = {
+                    "PPE": safety_ppe,
+                    "Equipment Status Confirmed": safety_equipment,
+                    "Isolation": safety_isolation,
+                    "Permit / LOTO": safety_permit,
+                    "Remarks": safety_remarks.strip()
+                }
+
+                # Safety requirements must be completed before work proceeds
+                safety_ready = (
+                    safety_ppe
+                    and safety_equipment
+                    and safety_isolation != "Not Verified"
+                    and safety_permit != "Not Verified"
+                )
+
+                na_selected = (
+                    safety_isolation == "Not Applicable"
+                    or safety_permit == "Not Applicable"
+                )
+
+                if (
+                    new_status in ["In Progress", "Pending Engineer Review"]
+                    and not safety_ready
+                ):
+                    st.error(
+                        "Complete all applicable safety checks before proceeding."
+                    )
+                    st.stop()
+
+                if na_selected and not safety_remarks.strip():
+                    st.error(
+                        "Provide a safety justification for any Not Applicable selection."
+                    )
+                    st.stop()
+
                 updated_wo = selected_wo.copy()
                 updated_wo["Status"] = new_status
                 updated_wo["Actual Hours"] = actual_hours
                 updated_wo["Maintenance Remarks"] = maintenance_remarks
+                updated_wo["Safety Checklist"] = safety_record
 
                 try:
                     response = supabase.table("work_orders").update({
