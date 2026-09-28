@@ -1662,6 +1662,7 @@ elif page == "Work Orders":
 
     st.divider()
     
+
     # -----------------------------
     # ENGINEER REVIEW AND APPROVAL
     # -----------------------------
@@ -1670,7 +1671,11 @@ elif page == "Work Orders":
     pending_review_wos = [
         wo
         for wo in st.session_state.work_orders
-        if wo["Status"] == "Pending Engineer Review"
+        if wo.get("Status") == "Pending Engineer Review"
+        and (
+            selected_site_id == "ALL"
+            or wo.get("Site ID") == selected_site_id
+        )
     ]
 
     if pending_review_wos:
@@ -1720,11 +1725,33 @@ elif page == "Work Orders":
 
             if approve_wo:
 
-                review_wo["Status"] = "Closed"
-                review_wo["Engineer Remarks"] = engineer_remarks
-                review_wo["Review Date"] = pd.Timestamp.today().strftime(
-                    "%d %b %Y"
+                updated_wo = review_wo.copy()
+                updated_wo["Status"] = "Closed"
+                updated_wo["Engineer Remarks"] = engineer_remarks
+                updated_wo["Review Date"] = (
+                    pd.Timestamp.today().strftime("%d %b %Y")
                 )
+
+                try:
+                    response = supabase.table("work_orders").update({
+                        "wo_data": updated_wo
+                    }).eq(
+                        "wo_id", review_wo_id
+                    ).execute()
+
+                    if not response.data:
+                        st.error(
+                            f"Work Order {review_wo_id} was not found in Supabase."
+                        )
+                        st.stop()
+
+                    review_wo.update(updated_wo)
+
+                except Exception as e:
+                    st.error(
+                        f"Unable to close work order in Supabase: {e}"
+                    )
+                    st.stop()
 
                 already_in_history = any(
                     record["WO ID"] == review_wo_id
@@ -1736,6 +1763,7 @@ elif page == "Work Orders":
                     history_record = {
                         "Date": pd.Timestamp.today().strftime("%d %b %Y"),
                         "WO ID": review_wo_id,
+                        "Site ID": review_wo.get("Site ID"),
                         "Asset": review_wo["Asset"],
                         "Maintenance Type": review_wo["Type"],
                         "Work Description": review_wo["Work"],
@@ -1748,7 +1776,7 @@ elif page == "Work Orders":
                         history_record
                     )
 
-                st.success(
+                st.session_state.wo_success_message = (
                     f"Work Order {review_wo_id} approved and closed."
                 )
 
@@ -1758,10 +1786,32 @@ elif page == "Work Orders":
 
                 if engineer_remarks.strip():
 
-                    review_wo["Status"] = "In Progress"
-                    review_wo["Engineer Remarks"] = engineer_remarks
+                    updated_wo = review_wo.copy()
+                    updated_wo["Status"] = "In Progress"
+                    updated_wo["Engineer Remarks"] = engineer_remarks
 
-                    st.success(
+                    try:
+                        response = supabase.table("work_orders").update({
+                            "wo_data": updated_wo
+                        }).eq(
+                            "wo_id", review_wo_id
+                        ).execute()
+
+                        if not response.data:
+                            st.error(
+                                f"Work Order {review_wo_id} was not found in Supabase."
+                            )
+                            st.stop()
+
+                        review_wo.update(updated_wo)
+
+                    except Exception as e:
+                        st.error(
+                            f"Unable to return work order in Supabase: {e}"
+                        )
+                        st.stop()
+
+                    st.session_state.wo_success_message = (
                         f"Work Order {review_wo_id} returned for rectification."
                     )
 
