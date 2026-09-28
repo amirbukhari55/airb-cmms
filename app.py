@@ -1647,6 +1647,43 @@ elif page == "Work Orders":
             st.info("No documents uploaded for this Work Order.")
 
     st.divider()
+
+    # --------------------------------
+    # EQUIPMENT-SPECIFIC PM TEMPLATES
+    # --------------------------------
+    PM_INSPECTION_TEMPLATES = {
+        "Pump": [
+            "Inspect pump and mechanical seal for leakage",
+            "Check bearing temperature",
+            "Check abnormal noise and vibration",
+            "Check lubrication condition",
+            "Record suction and discharge pressure",
+            "Record motor current"
+        ],
+        "Blower": [
+            "Inspect air filter condition",
+            "Check belt condition and tension",
+            "Check abnormal noise and vibration",
+            "Record discharge pressure",
+            "Check operating temperature",
+            "Check lubrication condition"
+        ],
+        "RO High-Pressure Pump": [
+            "Inspect mechanical seal for leakage",
+            "Record suction pressure",
+            "Record discharge pressure",
+            "Check abnormal noise and vibration",
+            "Record motor current",
+            "Inspect pump and motor condition"
+        ]
+    }
+
+    DEFAULT_PM_INSPECTION = [
+        "Inspect equipment condition",
+        "Check for leakage or visible damage",
+        "Check abnormal noise or vibration",
+        "Verify operating condition"
+    ]
     # --------------------------------
     # UPDATE WORK ORDER STATUS
     # --------------------------------
