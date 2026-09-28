@@ -2575,10 +2575,16 @@ elif page == "Procurement":
 
     st.divider()
 
+    
     # -----------------------------
     # PROCUREMENT DOCUMENT UPLOAD
     # -----------------------------
     st.subheader("Procurement Document Attachments")
+
+    from uuid import uuid4
+    from pathlib import Path
+
+    PROCUREMENT_STORAGE_BUCKET = "maintenance-documents"
 
     document_request_options = [
         req["Request ID"]
@@ -2592,7 +2598,7 @@ elif page == "Procurement":
             document_request_id = st.selectbox(
                 "Select Procurement Request",
                 document_request_options,
-                key="document_request_id"
+                key=f"document_request_id_{selected_site_id}"
             )
 
             document_type = st.selectbox(
@@ -2616,80 +2622,151 @@ elif page == "Procurement":
 
             if st.button("Save Attachment"):
 
-                if uploaded_file is not None:
-
-                    new_document = {
-                        "Site ID": selected_site_id,
-                        "Request ID": document_request_id,
-                        "Document Type": document_type,
-                        "Filename": uploaded_file.name,
-                        "File Content": uploaded_file.getvalue(),
-                        "Uploaded On": pd.Timestamp.today().strftime("%d %b %Y")
-                    }
-
-                    st.session_state.procurement_documents.append(
-                        new_document
-                    )
-
-                    st.success(
-                        f"{uploaded_file.name} attached to {document_request_id}."
-                    )
+                if uploaded_file is None:
+                    st.error("Please select a document to upload.")
 
                 else:
-                    st.error("Please select a document to upload.")
+                    filename = Path(uploaded_file.name).name
+                    file_extension = Path(filename).suffix.lower()
+
+                    storage_path = (
+                        f"{selected_site_id}/procurement/"
+                        f"{document_request_id}/"
+                        f"{uuid4().hex}{file_extension}"
+                    )
+
+                    file_content = uploaded_file.getvalue()
+
+                    try:
+                        # 1. Upload actual file to private Storage
+                        supabase.storage.from_(
+                            PROCUREMENT_STORAGE_BUCKET
+                        ).upload(
+                            path=storage_path,
+                            file=file_content,
+                            file_options={
+                                "content-type": (
+                                    uploaded_file.type
+                                    or "application/octet-stream"
+                                ),
+                                "upsert": "false"
+                            }
+                        )
+
+                    except Exception as e:
+                        st.error(
+                            f"Unable to upload procurement document: {e}"
+                        )
+
+                    else:
+                        try:
+                            # 2. Save document details in database
+                            supabase.table(
+                                "procurement_documents"
+                            ).insert({
+                                "request_id": document_request_id,
+                                "site_id": selected_site_id,
+                                "document_type": document_type,
+                                "filename": filename,
+                                "storage_path": storage_path
+                            }).execute()
+
+                        except Exception as e:
+
+                            # Remove file if database save fails
+                            try:
+                                supabase.storage.from_(
+                                    PROCUREMENT_STORAGE_BUCKET
+                                ).remove([storage_path])
+                            except Exception:
+                                pass
+
+                            st.error(
+                                f"Unable to save procurement document record: {e}"
+                            )
+
+                        else:
+                            st.success(
+                                f"{filename} attached to {document_request_id}."
+                            )
 
         # -----------------------------
         # PROCUREMENT DOCUMENT REGISTER
         # -----------------------------
         st.subheader("Uploaded Procurement Documents")
 
-        saved_documents = [
-            doc
-            for doc in st.session_state.procurement_documents
-            if doc.get("Request ID") == document_request_id
-        ]
+        try:
+            document_result = (
+                supabase.table("procurement_documents")
+                .select("*")
+                .eq("request_id", document_request_id)
+                .eq("site_id", selected_site_id)
+                .order("uploaded_on", desc=True)
+                .execute()
+            )
+
+            saved_documents = document_result.data or []
+
+        except Exception as e:
+            saved_documents = []
+            st.error(
+                f"Unable to retrieve procurement documents: {e}"
+            )
 
         if saved_documents:
 
             document_table = [
                 {
-                    "Document Type": doc["Document Type"],
-                    "Filename": doc["Filename"],
-                    "Uploaded On": doc["Uploaded On"]
+                    "Document Type": doc["document_type"],
+                    "Filename": doc["filename"],
+                    "Uploaded On": doc["uploaded_on"]
                 }
                 for doc in saved_documents
             ]
 
             st.dataframe(
                 document_table,
-                use_container_width=True
+                use_container_width=True,
+                hide_index=True
             )
 
-            selected_document_name = st.selectbox(
+            selected_document_index = st.selectbox(
                 "Select Document to Download",
-                [
-                    f"{i + 1}. {doc['Filename']}"
-                    for i, doc in enumerate(saved_documents)
-                ],
-                key="download_procurement_document"
+                range(len(saved_documents)),
+                format_func=lambda i: saved_documents[i]["filename"],
+                key=f"download_procurement_document_{selected_site_id}_{document_request_id}"
             )
 
-            selected_index = int(
-                selected_document_name.split(".")[0]
-            ) - 1
+            selected_document = saved_documents[
+                selected_document_index
+            ]
 
-            selected_document = saved_documents[selected_index]
+            try:
+                downloaded_content = (
+                    supabase.storage.from_(
+                        PROCUREMENT_STORAGE_BUCKET
+                    ).download(
+                        selected_document["storage_path"]
+                    )
+                )
 
-            st.download_button(
-                "Download Selected Document",
-                data=selected_document["File Content"],
-                file_name=selected_document["Filename"],
-                mime="application/octet-stream",
-                key="download_procurement_attachment"
-            )
+                st.download_button(
+                    "Download Selected Document",
+                    data=downloaded_content,
+                    file_name=selected_document["filename"],
+                    mime="application/octet-stream",
+                    key="download_procurement_attachment"
+                )
+
+            except Exception as e:
+                st.error(
+                    f"Unable to retrieve procurement document from Storage: {e}"
+                )
 
         else:
-            st.info("No documents uploaded for this procurement request.")
+            st.info(
+                "No documents uploaded for this procurement request."
+            )
 
     else:
         st.info(
