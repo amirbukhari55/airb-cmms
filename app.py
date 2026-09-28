@@ -1574,36 +1574,25 @@ elif page == "Work Orders":
 
             if update_wo:
 
-                selected_wo["Status"] = new_status
-                selected_wo["Actual Hours"] = actual_hours
-                selected_wo["Maintenance Remarks"] = maintenance_remarks
+                updated_wo = selected_wo.copy()
+                updated_wo["Status"] = new_status
+                updated_wo["Actual Hours"] = actual_hours
+                updated_wo["Maintenance Remarks"] = maintenance_remarks
 
-                # Add completed WO to Maintenance History
-                if new_status in "Closed":
+                try:
+                    supabase.table("work_orders").update({
+                        "wo_data": updated_wo
+                    }).eq(
+                        "wo_id", selected_wo_id
+                    ).execute()
 
-                    already_in_history = any(
-                        record["WO ID"] == selected_wo_id
-                        for record in st.session_state.maintenance_history
-                    )
+                    selected_wo.update(updated_wo)
 
-                    if not already_in_history:
+                except Exception as e:
+                    st.error(f"Unable to update work order in Supabase: {e}")
+                    st.stop()
 
-                        history_record = {
-                            "Date": pd.Timestamp.today().strftime("%d %b %Y"),
-                            "WO ID": selected_wo_id,
-                            "Asset": selected_wo["Asset"],
-                            "Maintenance Type": selected_wo["Type"],
-                            "Work Description": selected_wo["Work"],
-                            "Technician": selected_wo["Assigned To"],
-                            "Downtime (hr)": actual_hours,
-                            "Status": new_status
-                        }
-
-                        st.session_state.maintenance_history.append(
-                            history_record
-                        )
-
-                st.success(
+                st.session_state.wo_success_message = (
                     f"Work Order {selected_wo_id} updated to {new_status}."
                 )
 
