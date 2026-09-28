@@ -1757,10 +1757,33 @@ elif page == "Work Orders":
             template_name,
             DEFAULT_PM_INSPECTION
         )
+        # Load previously saved inspection results for this Work Order
+        saved_inspection = selected_wo.get("Inspection Results", {})
+        
+        inspection_results = {}
 
         with st.container(border=True):
             st.caption(f"Equipment Type: {template_name}")
             st.caption(f"Inspection Template: {len(inspection_items)} checks")
+            st.markdown("#### Equipment Inspection Checklist")
+
+            for item in inspection_items:
+            
+                inspection_results[item] = st.selectbox(
+                    item,
+                    ["Not Checked", "Pass", "Fail", "Not Applicable"],
+                    index=[
+                        "Not Checked", "Pass", "Fail", "Not Applicable"
+                    ].index(
+                        saved_inspection.get(item, "Not Checked")
+                        if saved_inspection.get(item, "Not Checked")
+                        in ["Not Checked", "Pass", "Fail", "Not Applicable"]
+                        else "Not Checked"
+                    ),
+                    key=f"inspection_{selected_wo_id}_{item}"
+                )
+            
+            st.divider()
             st.write(
                 f"**Asset:** {selected_wo['Asset']}"
             )
@@ -1920,6 +1943,8 @@ elif page == "Work Orders":
                 updated_wo["Actual Hours"] = actual_hours
                 updated_wo["Maintenance Remarks"] = maintenance_remarks
                 updated_wo["Safety Checklist"] = safety_record
+                updated_wo["Inspection Template"] = template_name
+                updated_wo["Inspection Results"] = inspection_results
 
                 try:
                     response = supabase.table("work_orders").update({
