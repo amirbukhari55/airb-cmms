@@ -1749,6 +1749,29 @@ elif page == "Work Orders":
                 f"**Work:** {selected_wo['Work']}"
             )
 
+            saved_safety = selected_wo.get("Safety Checklist", {})
+
+            # Initialise each WO's form only when first opened.
+            # Do not overwrite values while the technician is editing.
+            safety_defaults = {
+                f"safety_ppe_{selected_wo_id}": saved_safety.get("PPE", False),
+                f"safety_equipment_{selected_wo_id}": saved_safety.get(
+                    "Equipment Status Confirmed", False
+                ),
+                f"safety_isolation_{selected_wo_id}": saved_safety.get(
+                    "Isolation", "Not Verified"
+                ),
+                f"safety_permit_{selected_wo_id}": saved_safety.get(
+                    "Permit / LOTO", "Not Verified"
+                ),
+                f"safety_remarks_{selected_wo_id}": saved_safety.get(
+                    "Remarks", ""
+                )
+            }
+
+            for field_key, saved_value in safety_defaults.items():
+                if field_key not in st.session_state:
+                    st.session_state[field_key] = saved_value
             # --------------------------------
             # A. SAFETY & PREPARATION
             # --------------------------------
