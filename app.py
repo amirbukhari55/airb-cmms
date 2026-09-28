@@ -3103,16 +3103,28 @@ elif page == "Procurement":
                         "Document": document_type,
                         "Status": procurement_status
                     }
-
-                    st.session_state.procurement_requests.append(
-                        new_request
-                    )
-
-                    st.session_state.procurement_success_message = (
-                        f"Procurement Request {clean_request_id} submitted successfully."
-                    )
-
-                    st.rerun()
+                    try:
+                        supabase.table("procurement_requests").insert({
+                            "request_id": clean_request_id,
+                            "site_id": selected_site_id,
+                            "request_data": new_request
+                        }).execute()
+                    
+                    except Exception as e:
+                        st.error(
+                            f"Unable to save procurement request in Supabase: {e}"
+                        )
+                    
+                    else:
+                        st.session_state.procurement_requests.append(
+                            new_request
+                        )
+                    
+                        st.session_state.procurement_success_message = (
+                            f"Procurement Request {clean_request_id} submitted successfully."
+                        )
+                    
+                        st.rerun()
 
     else:
         st.info(
