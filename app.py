@@ -575,11 +575,6 @@ if page == "Dashboard":
             hide_index=True
         )
 
-        st.caption(
-            "Legacy sample records without a Site ID are included in "
-            "consolidated KPIs but are not attributed to an individual site."
-        )
-
         st.divider()
 
     # --------------------------------
