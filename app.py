@@ -1827,14 +1827,17 @@ elif page == "Work Orders":
                 st.rerun()
             
             
+            status_options = [
+                "Assigned",
+                "In Progress",
+                "Pending Engineer Review"
+            ]
+            
             new_status = st.selectbox(
                 "New Status",
-                [
-                    "Assigned",
-                    "In Progress",
-                    "Pending Engineer Review"
-                ],
-                key="update_wo_status"
+                status_options,
+                index=status_options.index(selected_wo["Status"]),
+                key=f"update_wo_status_{selected_wo_id}"
             )
 
             actual_hours = st.number_input(
