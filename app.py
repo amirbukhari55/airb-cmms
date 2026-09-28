@@ -2422,8 +2422,22 @@ elif page == "Procurement":
                 type="primary"
             ):
 
-                selected_request["Document"] = updated_document
-                selected_request["Status"] = updated_status
+                updated_request = selected_request.copy()
+                updated_request["Document"] = updated_document
+                updated_request["Status"] = updated_status
+
+                try:
+                    supabase.table("procurement_requests").update({
+                        "request_data": updated_request
+                    }).eq(
+                        "request_id", selected_request_id
+                    ).execute()
+
+                    selected_request.update(updated_request)
+
+                except Exception as e:
+                    st.error(f"Unable to update procurement request in Supabase: {e}")
+                    st.stop()
 
                 if updated_status == "Completed":
 
