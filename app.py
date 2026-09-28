@@ -1830,9 +1830,19 @@ elif page == "Work Orders":
                     "Status": status,
                     "Estimated Hours": estimated_hours
                 }
-
                 
-                st.session_state.work_orders.append(new_work_order)
+                try:
+                    supabase.table("work_orders").insert({
+                        "wo_id": wo_id,
+                        "site_id": selected_site_id,
+                        "wo_data": new_work_order
+                    }).execute()
+
+                    st.session_state.work_orders.append(new_work_order)
+
+                except Exception as e:
+                    st.error(f"Unable to save work order to Supabase: {e}")
+                    st.stop()
 
                 st.session_state.wo_success_message = (
                     f"Work Order {wo_id} created successfully."
