@@ -2865,7 +2865,7 @@ elif page == "Procurement":
                                 "procurement_documents"
                             ).insert({
                                 "request_id": document_request_id,
-                                "site_id": selected_site_id,
+                                "site_id": document_site_id,
                                 "document_type": document_type,
                                 "filename": filename,
                                 "storage_path": storage_path
