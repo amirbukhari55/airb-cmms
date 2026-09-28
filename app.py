@@ -1127,11 +1127,6 @@ elif page == "PM Schedule":
     # --------------------------------
     st.subheader("Generate Work Orders")
 
-    st.caption(
-        "Work orders are not yet saved to Supabase. "
-        "We will connect the Work Orders module next."
-    )
-
     
     if st.button("Generate Work Orders for Due PM"):
 
