@@ -1132,6 +1132,7 @@ elif page == "PM Schedule":
         "We will connect the Work Orders module next."
     )
 
+    
     if st.button("Generate Work Orders for Due PM"):
 
         generated_count = 0
@@ -1146,9 +1147,12 @@ elif page == "PM Schedule":
                 continue
 
             pm_id = pm["PM Schedule ID"]
+            wo_id = f"WO-{pm_id}"
 
+            # Check existing records, including those loaded from Supabase
             existing_wo = any(
                 wo.get("PM Schedule ID") == pm_id
+                or wo.get("WO ID") == wo_id
                 for wo in st.session_state.work_orders
             )
 
@@ -1156,7 +1160,7 @@ elif page == "PM Schedule":
                 continue
 
             new_wo = {
-                "WO ID": f"WO-{pm_id}",
+                "WO ID": wo_id,
                 "PM Schedule ID": pm_id,
                 "Site ID": pm.get("Site ID"),
                 "Asset": pm["Asset"],
@@ -1168,12 +1172,26 @@ elif page == "PM Schedule":
                 "Estimated Hours": pm.get("Estimated Hours", 1.0)
             }
 
+            # Save to Supabase before updating the app
+            try:
+                supabase.table("work_orders").insert({
+                    "wo_id": wo_id,
+                    "site_id": new_wo["Site ID"],
+                    "wo_data": new_wo
+                }).execute()
+
+            except Exception as e:
+                st.error(
+                    f"Unable to save generated Work Order {wo_id}: {e}"
+                )
+                continue
+
             st.session_state.work_orders.append(new_wo)
             generated_count += 1
 
         if generated_count > 0:
             st.success(
-                f"{generated_count} preventive maintenance work order(s) generated."
+                f"{generated_count} preventive maintenance work order(s) generated and saved."
             )
         else:
             st.info("No new due PM work orders to generate.")
