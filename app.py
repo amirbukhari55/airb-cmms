@@ -2819,6 +2819,13 @@ elif page == "Procurement":
                     st.error("Please select a document to upload.")
 
                 else:
+                    selected_document_request = next(
+                        req for req in site_requests
+                        if req["Request ID"] == document_request_id
+                    )
+                    
+                    document_site_id = procurement_site_id(selected_document_request)
+                    
                     filename = Path(uploaded_file.name).name
                     file_extension = Path(filename).suffix.lower()
 
