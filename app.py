@@ -2568,18 +2568,28 @@ elif page == "Procurement":
 
         return related_wo.get("Site ID") if related_wo else None
 
+    
     site_requests = [
         req
         for req in st.session_state.procurement_requests
-        if procurement_site_id(req) == selected_site_id
+        if (
+            selected_site_id == "ALL"
+            or procurement_site_id(req) == selected_site_id
+        )
     ]
 
+
+    
     site_cm = [
         cm
         for cm in st.session_state.corrective_maintenance
-        if cm.get("Site ID") == selected_site_id
+        if (
+            selected_site_id == "ALL"
+            or cm.get("Site ID") == selected_site_id
+        )
         and cm.get("Procurement") == "Required"
     ]
+
 
     # -----------------------------
     # PROCUREMENT SUMMARY
