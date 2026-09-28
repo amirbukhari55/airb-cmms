@@ -1437,10 +1437,16 @@ elif page == "Work Orders":
 
     st.divider()
     
+    
     # -----------------------------
     # MAINTENANCE DOCUMENT ATTACHMENTS
     # -----------------------------
     st.subheader("Maintenance Document Attachments")
+
+    from uuid import uuid4
+    from pathlib import Path
+
+    STORAGE_BUCKET = "maintenance-documents"
 
     with st.container(border=True):
 
@@ -1480,75 +1486,173 @@ elif page == "Work Orders":
             disabled=not document_wo_options
         ):
 
-            if uploaded_maintenance_file is not None:
-
-                new_document = {
-                    "WO ID": document_wo_id,
-                    "Document Type": document_type,
-                    "Filename": uploaded_maintenance_file.name,
-                    "File Content": uploaded_maintenance_file.getvalue(),
-                    "Uploaded On": pd.Timestamp.today().strftime("%d %b %Y")
-                }
-
-                st.session_state.maintenance_documents.append(
-                    new_document
-                )
-
-                st.success(
-                    f"{uploaded_maintenance_file.name} attached to {document_wo_id}."
-                )
+            if uploaded_maintenance_file is None:
+                st.error("Please select a document to upload.")
 
             else:
-                st.error("Please select a document to upload.")
-    
+                selected_document_wo = next(
+                    wo for wo in site_work_orders
+                    if wo["WO ID"] == document_wo_id
+                )
+
+                document_site_id = selected_document_wo["Site ID"]
+
+                filename = Path(
+                    uploaded_maintenance_file.name
+                ).name
+
+                storage_path = (
+                    f"{document_site_id}/"
+                    f"{document_wo_id}/"
+                    f"{uuid4().hex}_{filename}"
+                )
+
+                file_content = uploaded_maintenance_file.getvalue()
+
+                try:
+                    # 1. Upload actual file to private Storage bucket
+                    supabase.storage.from_(
+                        STORAGE_BUCKET
+                    ).upload(
+                        path=storage_path,
+                        file=file_content,
+                        file_options={
+                            "content-type": (
+                                uploaded_maintenance_file.type
+                                or "application/octet-stream"
+                            ),
+                            "upsert": "false"
+                        }
+                    )
+
+                except Exception as e:
+                    st.error(
+                        f"Unable to upload document to Storage: {e}"
+                    )
+
+                else:
+                    try:
+                        # 2. Save document details in database
+                        supabase.table(
+                            "maintenance_documents"
+                        ).insert({
+                            "wo_id": document_wo_id,
+                            "site_id": document_site_id,
+                            "document_type": document_type,
+                            "filename": filename,
+                            "storage_path": storage_path
+                        }).execute()
+
+                    except Exception as e:
+
+                        # Remove uploaded file if database save fails
+                        try:
+                            supabase.storage.from_(
+                                STORAGE_BUCKET
+                            ).remove([storage_path])
+                        except Exception:
+                            pass
+
+                        st.error(
+                            f"Unable to save document record: {e}"
+                        )
+
+                    else:
+                        st.success(
+                            f"{filename} attached to {document_wo_id}."
+                        )
+
     # -----------------------------
     # MAINTENANCE DOCUMENT REGISTER
     # -----------------------------
     st.subheader("Uploaded Maintenance Documents")
 
-    saved_maintenance_documents = [
-        doc
-        for doc in st.session_state.maintenance_documents
-        if doc["WO ID"] == document_wo_id
-    ]
+    if document_wo_id is None:
 
-    if saved_maintenance_documents:
-
-        maintenance_document_table = [
-            {
-                "Document Type": doc["Document Type"],
-                "Filename": doc["Filename"],
-                "Uploaded On": doc["Uploaded On"]
-            }
-            for doc in saved_maintenance_documents
-        ]
-
-        st.dataframe(
-            maintenance_document_table,
-            use_container_width=True
-        )
-
-        selected_maintenance_document = st.selectbox(
-            "Select Document to Download",
-            range(len(saved_maintenance_documents)),
-            format_func=lambda i: saved_maintenance_documents[i]["Filename"],
-            key="download_maintenance_document"
-        )
-
-        selected_file = saved_maintenance_documents[
-            selected_maintenance_document
-        ]
-
-        st.download_button(
-            "Download Maintenance Document",
-            data=selected_file["File Content"],
-            file_name=selected_file["Filename"],
-            mime="application/octet-stream",
-            key="download_maintenance_attachment"
-        )
+        st.info("No work orders available for document selection.")
 
     else:
-        st.info("No documents uploaded for this Work Order.")
+
+        try:
+            document_result = (
+                supabase.table("maintenance_documents")
+                .select("*")
+                .eq("wo_id", document_wo_id)
+                .eq(
+                    "site_id",
+                    next(
+                        wo["Site ID"]
+                        for wo in site_work_orders
+                        if wo["WO ID"] == document_wo_id
+                    )
+                )
+                .order("uploaded_on", desc=True)
+                .execute()
+            )
+
+            saved_maintenance_documents = document_result.data or []
+
+        except Exception as e:
+            saved_maintenance_documents = []
+            st.error(
+                f"Unable to retrieve maintenance documents: {e}"
+            )
+
+        if saved_maintenance_documents:
+
+            maintenance_document_table = [
+                {
+                    "Document Type": doc["document_type"],
+                    "Filename": doc["filename"],
+                    "Uploaded On": doc["uploaded_on"]
+                }
+                for doc in saved_maintenance_documents
+            ]
+
+            st.dataframe(
+                maintenance_document_table,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            selected_maintenance_document = st.selectbox(
+                "Select Document to Download",
+                range(len(saved_maintenance_documents)),
+                format_func=lambda i: (
+                    saved_maintenance_documents[i]["filename"]
+                ),
+                key="download_maintenance_document"
+            )
+
+            selected_file = saved_maintenance_documents[
+                selected_maintenance_document
+            ]
+
+            try:
+                downloaded_content = (
+                    supabase.storage.from_(
+                        STORAGE_BUCKET
+                    ).download(
+                        selected_file["storage_path"]
+                    )
+                )
+
+                st.download_button(
+                    "Download Maintenance Document",
+                    data=downloaded_content,
+                    file_name=selected_file["filename"],
+                    mime="application/octet-stream",
+                    key="download_maintenance_attachment"
+                )
+
+            except Exception as e:
+                st.error(
+                    f"Unable to retrieve document from Storage: {e}"
+                )
+
+        else:
+            st.info("No documents uploaded for this Work Order.")
+
     st.divider()
     # --------------------------------
     # UPDATE WORK ORDER STATUS
