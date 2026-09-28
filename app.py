@@ -1633,11 +1633,17 @@ elif page == "Work Orders":
                 updated_wo["Maintenance Remarks"] = maintenance_remarks
 
                 try:
-                    supabase.table("work_orders").update({
+                    response = supabase.table("work_orders").update({
                         "wo_data": updated_wo
                     }).eq(
                         "wo_id", selected_wo_id
                     ).execute()
+
+                    if not response.data:
+                        st.error(
+                            f"Work Order {selected_wo_id} was not found in Supabase."
+                        )
+                        st.stop()
 
                     selected_wo.update(updated_wo)
 
