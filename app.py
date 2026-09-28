@@ -1859,10 +1859,18 @@ elif page == "Work Orders":
 
             
             if create_cm:
+                failed_inspections = [
+                    item
+                    for item, result in inspection_results.items()
+                    if result == "Fail"
+                ]
+            
                 st.session_state.cm_from_wo = {
                     "WO ID": selected_wo["WO ID"],
                     "Asset": selected_wo["Asset"],
-                    "Technician": selected_wo["Assigned To"]
+                    "Technician": selected_wo["Assigned To"],
+                    "Site ID": selected_wo["Site ID"],
+                    "Failed Inspections": failed_inspections
                 }
 
                 st.session_state.navigate_to = "Corrective Maintenance"
@@ -2450,8 +2458,22 @@ elif page == "Corrective Maintenance":
                         ]
                     )
 
+                failed_inspections = (
+                    cm_prefill.get("Failed Inspections", [])
+                    if cm_prefill.get("WO ID") == wo_id
+                    else []
+                )
+                
+                prefilled_problem = (
+                    "Failed equipment inspection:\n"
+                    + "\n".join(f"- {item}" for item in failed_inspections)
+                    if failed_inspections
+                    else ""
+                )
+                
                 problem = st.text_area(
                     "Problem / Failure Description",
+                    value=prefilled_problem,
                     placeholder="Describe the problem or failure..."
                 )
 
@@ -2501,6 +2523,7 @@ elif page == "Corrective Maintenance":
                             "WO ID": wo_id,
                             "Asset": asset,
                             "Problem": problem.strip(),
+                            "Failed Inspections": failed_inspections,
                             "Corrective Action": action.strip(),
                             "Failure Type": failure_type,
                             "Priority": priority,
