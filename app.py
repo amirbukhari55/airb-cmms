@@ -1749,6 +1749,43 @@ elif page == "Work Orders":
                 f"**Work:** {selected_wo['Work']}"
             )
 
+            # --------------------------------
+            # A. SAFETY & PREPARATION
+            # --------------------------------
+            st.markdown("#### A. Safety & Preparation")
+
+            st.caption(
+                "Complete the applicable safety checks before starting maintenance."
+            )
+
+            safety_ppe = st.checkbox(
+                "Appropriate PPE is available and worn",
+                key=f"safety_ppe_{selected_wo_id}"
+            )
+
+            safety_equipment = st.checkbox(
+                "Equipment status (ON/OFF) has been confirmed",
+                key=f"safety_equipment_{selected_wo_id}"
+            )
+
+            safety_isolation = st.selectbox(
+                "Electrical / mechanical isolation and zero-energy verification",
+                ["Not Verified", "Verified", "Not Applicable"],
+                key=f"safety_isolation_{selected_wo_id}"
+            )
+
+            safety_permit = st.selectbox(
+                "Work permit / LOTO requirements",
+                ["Not Verified", "Verified", "Not Applicable"],
+                key=f"safety_permit_{selected_wo_id}"
+            )
+
+            safety_remarks = st.text_area(
+                "Safety Remarks / Justification",
+                key=f"safety_remarks_{selected_wo_id}"
+            )
+
+            st.divider()
             create_cm = st.button(
                 "Create Corrective Maintenance",
                 key="create_cm_from_wo"
