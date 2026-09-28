@@ -2739,17 +2739,81 @@ elif page == "Procurement":
             "No corrective maintenance requiring procurement for the selected site."
         )
 
+
 elif page == "Maintenance History":
 
     st.title("Maintenance History")
     st.caption("Completed preventive and corrective maintenance records")
 
-    
+    # --------------------------------
+    # BUILD HISTORY FROM CLOSED WORK ORDERS
+    # --------------------------------
+    history_records = []
+
+    for wo in st.session_state.work_orders:
+
+        if wo.get("Status") not in ["Closed", "Completed"]:
+            continue
+
+        if (
+            selected_site_id != "ALL"
+            and wo.get("Site ID") != selected_site_id
+        ):
+            continue
+
+        history_records.append({
+            "Date": wo.get("Review Date", ""),
+            "WO ID": wo.get("WO ID", ""),
+            "Site ID": wo.get("Site ID", ""),
+            "Asset": wo.get("Asset", ""),
+            "Maintenance Type": wo.get("Type", ""),
+            "Work Description": wo.get("Work", ""),
+            "Technician": wo.get("Assigned To", ""),
+            "Downtime (hr)": wo.get("Actual Hours", 0) or 0,
+            "Status": wo.get("Status", "")
+        })
+
+    # Retain existing history records without duplicating WOs
+    existing_wo_ids = {
+        record["WO ID"] for record in history_records
+    }
+
+    for record in st.session_state.maintenance_history:
+
+        if record.get("WO ID") in existing_wo_ids:
+            continue
+
+        if (
+            selected_site_id != "ALL"
+            and record.get("Site ID") != selected_site_id
+        ):
+            continue
+
+        history_records.append(record)
 
     history_df = pd.DataFrame(
-        st.session_state.maintenance_history
+        history_records,
+        columns=[
+            "Date",
+            "WO ID",
+            "Site ID",
+            "Asset",
+            "Maintenance Type",
+            "Work Description",
+            "Technician",
+            "Downtime (hr)",
+            "Status"
+        ]
     )
 
+    history_df["Downtime (hr)"] = pd.to_numeric(
+        history_df["Downtime (hr)"],
+        errors="coerce"
+    ).fillna(0)
+
+    # --------------------------------
+    # SUMMARY
+    # --------------------------------
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -2758,7 +2822,7 @@ elif page == "Maintenance History":
     with col2:
         st.metric(
             "Total Downtime",
-            f"{history_df['Downtime (hr)'].sum()} hr"
+            f"{history_df['Downtime (hr)'].sum():g} hr"
         )
 
     with col3:
@@ -2774,11 +2838,14 @@ elif page == "Maintenance History":
 
     st.divider()
 
+    # --------------------------------
+    # MAINTENANCE RECORDS
+    # --------------------------------
     st.subheader("Maintenance Records")
 
     search_asset = st.text_input(
         "Search Asset",
-        placeholder="Example: P-101"
+        placeholder="Example: PUMP-101"
     )
 
     maintenance_filter = st.selectbox(
