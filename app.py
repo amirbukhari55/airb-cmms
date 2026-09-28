@@ -173,8 +173,34 @@ if "assets" not in st.session_state:
 if "pm_schedules" not in st.session_state:
     st.session_state.pm_schedules = []
     
+
 if "work_orders" not in st.session_state:
-    st.session_state.work_orders = []
+    try:
+        response = (
+            supabase.table("work_orders")
+            .select("wo_id, site_id, wo_data")
+            .order("wo_id")
+            .execute()
+        )
+
+        loaded_work_orders = []
+
+        for row in response.data or []:
+            wo = row.get("wo_data") or {}
+
+            if isinstance(wo, str):
+                wo = json.loads(wo)
+
+            wo["WO ID"] = row["wo_id"]
+            wo["Site ID"] = row["site_id"]
+
+            loaded_work_orders.append(wo)
+
+        st.session_state.work_orders = loaded_work_orders
+
+    except Exception as e:
+        st.error(f"Unable to load work orders from Supabase: {e}")
+        st.stop()
     
 if "corrective_maintenance" not in st.session_state:
     st.session_state.corrective_maintenance = []
