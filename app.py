@@ -971,8 +971,22 @@ elif page == "Asset Register":
                     "Status": status,
                     "Manufacturer": manufacturer.strip()
                 }
-
-                st.session_state.assets.append(new_asset)
+                
+                try:
+                    supabase.table("assets").upsert(
+                        {
+                            "asset_id": clean_asset_id,
+                            "site_id": registration_site_id,
+                            "asset_data": new_asset
+                        },
+                        on_conflict="asset_id,site_id"
+                    ).execute()
+                
+                    st.session_state.assets.append(new_asset)
+                
+                except Exception as e:
+                    st.error(f"Unable to save asset to Supabase: {e}")
+                    st.stop()
 
                 st.session_state.asset_success_message = (
                     f"Asset {clean_asset_id} registered successfully "
