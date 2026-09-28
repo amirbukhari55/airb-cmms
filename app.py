@@ -1704,9 +1704,43 @@ elif page == "Work Orders":
             wo for wo in st.session_state.work_orders
             if wo["WO ID"] == selected_wo_id
         )
+        # Identify equipment type from Asset Register
+        selected_asset = next(
+            (
+                asset
+                for asset in st.session_state.assets
+                if asset.get("Asset ID") == selected_wo.get("Asset")
+                and asset.get("Site ID") == selected_wo.get("Site ID")
+            ),
+            None
+        )
+
+        equipment_type = (
+            selected_asset.get("Asset Type", "Other")
+            if selected_asset
+            else "Other"
+        )
+
+        asset_name = (
+            selected_asset.get("Asset Name", selected_wo["Asset"])
+            if selected_asset
+            else selected_wo["Asset"]
+        )
+
+        # Identify the appropriate inspection checklist
+        if equipment_type == "Pump" and "RO" in asset_name.upper():
+            template_name = "RO High-Pressure Pump"
+        else:
+            template_name = equipment_type
+
+        inspection_items = PM_INSPECTION_TEMPLATES.get(
+            template_name,
+            DEFAULT_PM_INSPECTION
+        )
 
         with st.container(border=True):
-
+            st.caption(f"Equipment Type: {template_name}")
+            st.caption(f"Inspection Template: {len(inspection_items)} checks")
             st.write(
                 f"**Asset:** {selected_wo['Asset']}"
             )
