@@ -4,42 +4,138 @@ from supabase import create_client
 import json
 
 # -----------------------------
-# ADMIN LOGIN
+# INDIVIDUAL USER LOGIN
 # -----------------------------
 
-import hmac
+@st.cache_resource
+def get_admin_client():
+    return create_client(
+        st.secrets["supabase"]["url"],
+        st.secrets["supabase"]["key"]
+    )
+
+
+def get_auth_client():
+    # Separate client for each login session.
+    return create_client(
+        st.secrets["supabase"]["url"],
+        st.secrets["supabase"]["publishable_key"]
+    )
+
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
+if "current_user" not in st.session_state:
+    st.session_state.current_user = None
+
+if "auth_client" not in st.session_state:
+    st.session_state.auth_client = None
+
+
 if not st.session_state.authenticated:
 
     st.title("AIRB CMMS Login")
-    st.caption("Authorised access only")
+    st.caption("Sign in using your registered account")
 
     with st.form("login_form"):
+
+        email = st.text_input("Work Email")
+
         password = st.text_input(
-            "Administrator Password",
+            "Password",
             type="password"
         )
 
-        login_clicked = st.form_submit_button("Login")
+        login_clicked = st.form_submit_button(
+            "Login",
+            type="primary"
+        )
 
-        if login_clicked:
-            if hmac.compare_digest(
-                password,
-                st.secrets["auth"]["admin_password"]
-            ):
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.error("Incorrect password.")
+    if login_clicked:
+
+        try:
+            auth_client = get_auth_client()
+
+            response = (
+                auth_client.auth.sign_in_with_password({
+                    "email": email.strip(),
+                    "password": password
+                })
+            )
+
+            if not response.user or not response.session:
+                st.error("Login unsuccessful.")
+                st.stop()
+
+            admin_client = get_admin_client()
+
+            profile_response = (
+                admin_client.table("cmms_users")
+                .select(
+                    "user_id, full_name, role, site_id, is_active"
+                )
+                .eq("user_id", response.user.id)
+                .single()
+                .execute()
+            )
+
+            profile = profile_response.data
+
+            if not profile or not profile.get("is_active"):
+                auth_client.auth.sign_out()
+                st.error(
+                    "Your account is not authorised to access CMMS."
+                )
+                st.stop()
+
+            st.session_state.current_user = profile
+            st.session_state.auth_client = auth_client
+            st.session_state.authenticated = True
+
+            st.rerun()
+
+        except Exception:
+            st.error(
+                "Login failed. Check your credentials or "
+                "contact the CMMS administrator."
+            )
 
     st.stop()
 
+
+# -----------------------------
+# USER SESSION
+# -----------------------------
+
+current_user = st.session_state.current_user
+
+if not current_user or not current_user.get("is_active"):
+    st.session_state.authenticated = False
+    st.stop()
+
 with st.sidebar:
+
+    st.caption(
+        f"Signed in: {current_user['full_name']}"
+    )
+
+    st.caption(
+        f"Role: {current_user['role']}"
+    )
+
     if st.button("Logout"):
+
+        try:
+            if st.session_state.auth_client:
+                st.session_state.auth_client.auth.sign_out()
+        except Exception:
+            pass
+
         st.session_state.authenticated = False
+        st.session_state.current_user = None
+        st.session_state.auth_client = None
+
         st.rerun()
 
 
