@@ -2391,17 +2391,22 @@ elif page == "Work Orders":
                         )
 
                         if offset is not None:
-                            scheduled_date = pd.Timestamp(
-                                review_wo.get("Scheduled Due Date")
-                                or pm_record["Next Due Date"]
-                            )
+                            scheduled_due = review_wo.get("Scheduled Due Date")
+
+                            if scheduled_due:
+                                scheduled_date = pd.Timestamp(scheduled_due)
+                            else:
+                                scheduled_date = None
 
                             current_due = pd.Timestamp(
                                 pm_record["Next Due Date"]
                             )
 
                             # Do not advance twice for the same occurrence.
-                            if scheduled_date == current_due:
+                            if (
+                                scheduled_date is not None
+                                and scheduled_date == current_due
+                            ):
                                 next_due = scheduled_date + offset
 
                                 updated_pm = pm_record.copy()
