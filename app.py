@@ -3526,12 +3526,37 @@ elif page == "Procurement":
                             cm
                             for cm in st.session_state.corrective_maintenance
                             if cm.get("CM ID") == selected_request["CM ID"]
+                            and cm.get("Site ID") == selected_request["Site ID"]
                         ),
                         None
                     )
 
                     if related_cm is not None:
-                        related_cm["Procurement Status"] = "Completed"
+                        updated_cm = related_cm.copy()
+                        updated_cm["Procurement Status"] = "Completed"
+
+                        try:
+                            cm_response = (
+                                supabase.table("corrective_maintenance")
+                                .update({"cm_data": updated_cm})
+                                .eq("cm_id", related_cm["CM ID"])
+                                .eq("site_id", related_cm["Site ID"])
+                                .execute()
+                            )
+
+                            if not cm_response.data:
+                                st.warning(
+                                    "Procurement was updated, but the linked "
+                                    "CM record could not be found in Supabase."
+                                )
+                            else:
+                                related_cm.update(updated_cm)
+
+                        except Exception as e:
+                            st.warning(
+                                "Procurement was updated, but the linked "
+                                f"CM status could not be saved: {e}"
+                            )
 
                 st.session_state.procurement_success_message = (
                     f"{selected_request_id} updated to {updated_status}."
