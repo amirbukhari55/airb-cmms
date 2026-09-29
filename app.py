@@ -2363,84 +2363,7 @@ elif page == "Work Orders":
                     st.error(f"Unable to update work order in Supabase: {e}")
                     st.stop()
 
-                # Advance recurring PM only after its WO is closed.
-                pm_id = review_wo.get("PM Schedule ID")
-
-                if pm_id:
-                    pm_record = next(
-                        (
-                            pm for pm in st.session_state.pm_schedules
-                            if pm.get("PM Schedule ID") == pm_id
-                            and pm.get("Site ID") == review_wo.get("Site ID")
-                        ),
-                        None
-                    )
-
-                    if pm_record:
-                        frequency_offsets = {
-                            "Daily": pd.DateOffset(days=1),
-                            "Weekly": pd.DateOffset(weeks=1),
-                            "Monthly": pd.DateOffset(months=1),
-                            "Quarterly": pd.DateOffset(months=3),
-                            "Half-Yearly": pd.DateOffset(months=6),
-                            "Yearly": pd.DateOffset(years=1)
-                        }
-
-                        offset = frequency_offsets.get(
-                            pm_record.get("Frequency")
-                        )
-
-                        if offset is not None:
-                            scheduled_due = review_wo.get("Scheduled Due Date")
-
-                            if scheduled_due:
-                                scheduled_date = pd.Timestamp(scheduled_due)
-                            else:
-                                scheduled_date = None
-
-                            current_due = pd.Timestamp(
-                                pm_record["Next Due Date"]
-                            )
-
-                            # Do not advance twice for the same occurrence.
-                            if (
-                                scheduled_date is not None
-                                and scheduled_date == current_due
-                            ):
-                                next_due = scheduled_date + offset
-                                today = pd.Timestamp.today().normalize()
-
-                                # Resume at the next future scheduled occurrence.
-                                while next_due <= today:
-                                    next_due = next_due + offset
-
-                                updated_pm = pm_record.copy()
-                                updated_pm["Next Due Date"] = (
-                                    next_due.strftime("%Y-%m-%d")
-                                )
-
-                                try:
-                                    pm_response = (
-                                        supabase.table("pm_schedules")
-                                        .update({"pm_data": updated_pm})
-                                        .eq("pm_schedule_id", pm_id)
-                                        .eq("site_id", review_wo.get("Site ID"))
-                                        .execute()
-                                    )
-
-                                    if not pm_response.data:
-                                        st.warning(
-                                            "Work order closed, but PM schedule "
-                                            "was not updated in Supabase."
-                                        )
-                                    else:
-                                        pm_record.update(updated_pm)
-
-                                except Exception as e:
-                                    st.warning(
-                                        f"Work order closed, but PM schedule "
-                                        f"could not advance: {e}"
-                                    )
+                
                 st.session_state.wo_success_message = (
                     f"Work Order {selected_wo_id} updated to {new_status}."
                 )
@@ -2565,6 +2488,85 @@ elif page == "Work Orders":
                     st.session_state.maintenance_history.append(
                         history_record
                     )
+                    
+                # Advance recurring PM only after its WO is closed.
+                pm_id = review_wo.get("PM Schedule ID")
+
+                if pm_id:
+                    pm_record = next(
+                        (
+                            pm for pm in st.session_state.pm_schedules
+                            if pm.get("PM Schedule ID") == pm_id
+                            and pm.get("Site ID") == review_wo.get("Site ID")
+                        ),
+                        None
+                    )
+
+                    if pm_record:
+                        frequency_offsets = {
+                            "Daily": pd.DateOffset(days=1),
+                            "Weekly": pd.DateOffset(weeks=1),
+                            "Monthly": pd.DateOffset(months=1),
+                            "Quarterly": pd.DateOffset(months=3),
+                            "Half-Yearly": pd.DateOffset(months=6),
+                            "Yearly": pd.DateOffset(years=1)
+                        }
+
+                        offset = frequency_offsets.get(
+                            pm_record.get("Frequency")
+                        )
+
+                        if offset is not None:
+                            scheduled_due = review_wo.get("Scheduled Due Date")
+
+                            if scheduled_due:
+                                scheduled_date = pd.Timestamp(scheduled_due)
+                            else:
+                                scheduled_date = None
+
+                            current_due = pd.Timestamp(
+                                pm_record["Next Due Date"]
+                            )
+
+                            # Do not advance twice for the same occurrence.
+                            if (
+                                scheduled_date is not None
+                                and scheduled_date == current_due
+                            ):
+                                next_due = scheduled_date + offset
+                                today = pd.Timestamp.today().normalize()
+
+                                # Resume at the next future scheduled occurrence.
+                                while next_due <= today:
+                                    next_due = next_due + offset
+
+                                updated_pm = pm_record.copy()
+                                updated_pm["Next Due Date"] = (
+                                    next_due.strftime("%Y-%m-%d")
+                                )
+
+                                try:
+                                    pm_response = (
+                                        supabase.table("pm_schedules")
+                                        .update({"pm_data": updated_pm})
+                                        .eq("pm_schedule_id", pm_id)
+                                        .eq("site_id", review_wo.get("Site ID"))
+                                        .execute()
+                                    )
+
+                                    if not pm_response.data:
+                                        st.warning(
+                                            "Work order closed, but PM schedule "
+                                            "was not updated in Supabase."
+                                        )
+                                    else:
+                                        pm_record.update(updated_pm)
+
+                                except Exception as e:
+                                    st.warning(
+                                        f"Work order closed, but PM schedule "
+                                        f"could not advance: {e}"
+                                    )
 
                 st.session_state.wo_success_message = (
                     f"Work Order {review_wo_id} approved and closed."
