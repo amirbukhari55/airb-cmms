@@ -430,8 +430,62 @@ if "page" not in st.session_state:
 if "navigate_to" in st.session_state:
     st.session_state.page = st.session_state.pop("navigate_to")
 
+# --------------------------------
+# ROLE-BASED MODULE ACCESS
+# --------------------------------
+
+user_role = st.session_state.current_user["role"]
+
+role_pages = {
+    "Administrator": [
+        "Dashboard",
+        "Site Master",
+        "Asset Register",
+        "PM Schedule",
+        "Work Orders",
+        "Corrective Maintenance",
+        "Procurement",
+        "Maintenance History"
+    ],
+
+    "Engineer": [
+        "Dashboard",
+        "Asset Register",
+        "PM Schedule",
+        "Work Orders",
+        "Corrective Maintenance",
+        "Procurement",
+        "Maintenance History"
+    ],
+
+    "Technician": [
+        "Dashboard",
+        "Asset Register",
+        "PM Schedule",
+        "Work Orders",
+        "Corrective Maintenance",
+        "Maintenance History"
+    ],
+
+    "Management": [
+        "Dashboard",
+        "Maintenance History"
+    ]
+}
+
+allowed_pages = role_pages.get(user_role, [])
+
+if not allowed_pages:
+    st.error("Your account has no assigned module access.")
+    st.stop()
+
+if st.session_state.page not in allowed_pages:
+    st.session_state.page = "Dashboard"
 page = st.sidebar.radio(
     "Navigation",
+    allowed_pages,
+    key="page"
+)
     
 [
     "Dashboard",
