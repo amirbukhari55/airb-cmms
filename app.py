@@ -2502,16 +2502,27 @@ elif page == "Work Orders":
         with col1:
             wo_id = st.text_input("Work Order ID")
 
+            
+            # Only show active assets registered under the selected site.
+            site_assets = [
+                item
+                for item in st.session_state.assets
+                if item.get("Status") == "Active"
+                and item.get("Site ID") == selected_site_id
+            ]
+
             asset_options = [
                 f"{item['Asset ID']} - {item['Asset Name']}"
-                for item in st.session_state.assets
-                if item["Status"] == "Active"
+                for item in site_assets
             ]
 
             asset = st.selectbox(
                 "Asset",
-                asset_options
+                asset_options,
+                index=0 if asset_options else None,
+                placeholder="Select an asset from this site"
             )
+
 
             maintenance_type = st.selectbox(
                 "Maintenance Type",
@@ -2575,7 +2586,21 @@ elif page == "Work Orders":
                     )
                     st.stop()
 
-                asset_id = asset.split(" - ")[0]
+                
+                if not asset:
+                    st.error("Please select an asset registered under this site.")
+                    st.stop()
+
+                asset_id = asset.split(" - ", 1)[0]
+
+                if not any(
+                    item.get("Asset ID") == asset_id
+                    and item.get("Site ID") == selected_site_id
+                    for item in site_assets
+                ):
+                    st.error("Selected asset does not belong to this site.")
+                    st.stop()
+
 
                 new_work_order = {
                     "WO ID": wo_id,
