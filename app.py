@@ -720,6 +720,78 @@ if page == "Dashboard":
         mime="text/csv",
         disabled=pm_report_df.empty
     )
+    
+    # --------------------------------
+    # CM AND PROCUREMENT REPORT EXPORT
+    # --------------------------------
+    st.divider()
+    st.subheader("Corrective Maintenance & Procurement Reports")
+
+    cm_columns = [
+        "CM ID",
+        "Site ID",
+        "WO ID",
+        "Asset",
+        "Problem",
+        "Failure Type",
+        "Priority",
+        "Downtime",
+        "Corrective Action",
+        "Procurement",
+        "Procurement Status",
+        "Status",
+        "Engineer Decision",
+        "Review Date"
+    ]
+
+    cm_report_df = pd.DataFrame(
+        dashboard_cm
+    ).reindex(columns=cm_columns)
+
+    procurement_columns = [
+        "Request ID",
+        "Site ID",
+        "CM ID",
+        "WO ID",
+        "Asset",
+        "Requirement",
+        "Requirement Type",
+        "Justification",
+        "Estimated Cost",
+        "Priority",
+        "Document",
+        "Status"
+    ]
+
+    procurement_report_df = pd.DataFrame(
+        dashboard_procurement
+    ).reindex(columns=procurement_columns)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.download_button(
+            label="Download CM Report (CSV)",
+            data=cm_report_df.to_csv(index=False).encode("utf-8-sig"),
+            file_name=(
+                f"AIRB_CM_Report_{selected_site_id}_"
+                f"{today.strftime('%Y%m%d')}.csv"
+            ),
+            mime="text/csv",
+            disabled=cm_report_df.empty
+        )
+
+    with col2:
+        st.download_button(
+            label="Download Procurement Report (CSV)",
+            data=procurement_report_df.to_csv(index=False).encode("utf-8-sig"),
+            file_name=(
+                f"AIRB_Procurement_Report_{selected_site_id}_"
+                f"{today.strftime('%Y%m%d')}.csv"
+            ),
+            mime="text/csv",
+            disabled=procurement_report_df.empty
+        )
 # -----------------------------
 # OTHER MODULES
 # -----------------------------
