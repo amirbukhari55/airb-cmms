@@ -2425,6 +2425,122 @@ elif page == "Corrective Maintenance":
         st.info("No active CM records to update.")
 
     st.divider()
+
+    # --------------------------------
+    # ENGINEER REVIEW & APPROVAL
+    # --------------------------------
+    st.subheader("Engineer Review & Approval")
+
+    pending_cm = [
+        cm for cm in site_cm_records
+        if cm.get("Status") == "Pending Engineer Review"
+    ]
+
+    if pending_cm:
+
+        review_cm_id = st.selectbox(
+            "Select CM for Engineer Review",
+            [cm["CM ID"] for cm in pending_cm],
+            key="engineer_review_cm"
+        )
+
+        review_cm = next(
+            cm for cm in pending_cm
+            if cm["CM ID"] == review_cm_id
+        )
+
+        with st.container(border=True):
+
+            st.write(f"**CM ID:** {review_cm['CM ID']}")
+            st.write(f"**Related WO:** {review_cm['WO ID']}")
+            st.write(f"**Asset:** {review_cm['Asset']}")
+            st.write(f"**Problem:** {review_cm['Problem']}")
+            st.write(
+                f"**Corrective Action:** "
+                f"{review_cm.get('Corrective Action', '')}"
+            )
+
+            engineer_remarks = st.text_area(
+                "Engineer Review Remarks",
+                key=f"cm_engineer_remarks_{review_cm_id}"
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                approve_cm = st.button(
+                    "Approve & Complete CM",
+                    type="primary",
+                    key=f"approve_cm_{review_cm_id}"
+                )
+
+            with col2:
+                return_cm = st.button(
+                    "Return for Rectification",
+                    key=f"return_cm_{review_cm_id}"
+                )
+
+            if approve_cm or return_cm:
+
+                if not engineer_remarks.strip():
+                    st.error("Engineer review remarks are required.")
+                    st.stop()
+
+                updated_cm = review_cm.copy()
+
+                if approve_cm:
+                    updated_cm["Status"] = "Completed"
+                    updated_cm["Engineer Decision"] = "Approved"
+                else:
+                    updated_cm["Status"] = "In Progress"
+                    updated_cm["Engineer Decision"] = "Returned for Rectification"
+
+                updated_cm["Engineer Review Remarks"] = (
+                    engineer_remarks.strip()
+                )
+
+                updated_cm["Review Date"] = (
+                    pd.Timestamp.now().isoformat()
+                )
+
+                try:
+                    response = (
+                        supabase.table("corrective_maintenance")
+                        .update({"cm_data": updated_cm})
+                        .eq("cm_id", review_cm_id)
+                        .eq("site_id", review_cm["Site ID"])
+                        .execute()
+                    )
+
+                    if not response.data:
+                        st.error("CM record was not found in Supabase.")
+                        st.stop()
+
+                    review_cm.update(updated_cm)
+
+                except Exception as e:
+                    st.error(
+                        f"Unable to save engineer review: {e}"
+                    )
+                    st.stop()
+
+                st.session_state.cm_review_success = (
+                    f"{review_cm_id}: "
+                    f"{updated_cm['Engineer Decision']}."
+                )
+
+                st.rerun()
+
+    else:
+        st.info("No CM records pending engineer review.")
+
+    if "cm_review_success" in st.session_state:
+        st.success(
+            st.session_state.pop("cm_review_success")
+        )
+
+    st.divider()
+
     # --------------------------------
     # OPEN CORRECTIVE MAINTENANCE
     # --------------------------------
