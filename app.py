@@ -2353,8 +2353,7 @@ elif page == "Corrective Maintenance":
         cm_status_options = [
             "Open",
             "In Progress",
-            "Pending Engineer Review",
-            "Completed"
+            "Pending Engineer Review"
         ]
 
         updated_cm_status = st.selectbox(
@@ -2381,6 +2380,16 @@ elif page == "Corrective Maintenance":
             ):
                 st.error("Enter the corrective action before proceeding.")
                 st.stop()
+            if updated_cm_status == "Pending Engineer Review":
+
+                if updated_cm_action.strip() == (
+                    "Inspection finding recorded. Further investigation required."
+                ):
+                    st.error(
+                        "Record the actual corrective work performed before "
+                        "submitting for engineer review."
+                    )
+                    st.stop()
 
             updated_cm = selected_cm.copy()
             updated_cm["Status"] = updated_cm_status
