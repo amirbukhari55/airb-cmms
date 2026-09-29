@@ -1968,8 +1968,30 @@ elif page == "Work Orders":
                 
                     if failed_items:
                         st.error(
-                            "Failed inspection items require corrective attention "
-                            "before submitting the Work Order for engineer review."
+                            "Resolve the failed inspection items before submitting "
+                            "the Work Order for engineer review."
+                        )
+                        st.stop()
+                    
+                    # Check all corrective maintenance records linked to this WO.
+                    # A failed inspection cannot be bypassed by changing it to Pass.
+                    linked_cm = [
+                        cm for cm in st.session_state.corrective_maintenance
+                        if cm.get("WO ID") == selected_wo_id
+                        and cm.get("Site ID") == selected_wo.get("Site ID")
+                    ]
+                    
+                    unresolved_cm = [
+                        cm for cm in linked_cm
+                        if cm.get("Status") != "Completed"
+                        or cm.get("Engineer Decision") != "Approved"
+                    ]
+                    
+                    if unresolved_cm:
+                        st.error(
+                            "This Work Order has unresolved corrective maintenance. "
+                            "Complete engineer approval for all linked CM records "
+                            "before submitting it for WO review."
                         )
                         st.stop()
                 updated_wo = selected_wo.copy()
