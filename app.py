@@ -281,7 +281,7 @@ if "maintenance_documents" not in st.session_state:
     st.session_state.maintenance_documents = []
     
 if "maintenance_history" not in st.session_state:
-    st.session_state.maintenance_history = [
+    st.session_state.maintenance_history = []
         {
             "Date": "15 Sep 2026",
             "WO ID": "WO-001",
