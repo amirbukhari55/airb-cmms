@@ -1891,16 +1891,22 @@ elif page == "Work Orders":
                 key=f"update_wo_status_{selected_wo_id}"
             )
 
+            
             actual_hours = st.number_input(
                 "Actual Maintenance Hours",
                 min_value=0.0,
-                step=0.5
+                step=0.5,
+                value=float(selected_wo.get("Actual Hours") or 0.0),
+                key=f"actual_hours_{selected_wo_id}"
             )
 
             maintenance_remarks = st.text_area(
                 "Maintenance Remarks",
-                placeholder="Enter work performed, findings or completion remarks..."
+                value=selected_wo.get("Maintenance Remarks") or "",
+                placeholder="Enter work performed, findings or completion remarks...",
+                key=f"maintenance_remarks_{selected_wo_id}"
             )
+
 
             update_wo = st.button(
                 "Update Work Order",
