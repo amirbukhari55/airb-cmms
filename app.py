@@ -853,7 +853,10 @@ elif page == "Asset Register":
 
                     new_sites_count += 1
 
-            # Import equipment records.
+            
+            # Import equipment records and update existing classifications.
+            updated_count = 0
+
             for _, row in import_df.iterrows():
 
                 asset_id = str(row["Tag No"]).strip()
@@ -864,13 +867,32 @@ elif page == "Asset Register":
                     if site["Site Name"] == site_name
                 )
 
-                existing_asset = any(
-                    asset["Asset ID"] == asset_id
-                    and asset.get("Site ID") == site_record["Site ID"]
-                    for asset in st.session_state.assets
+                asset_group = (
+                    str(row["Group"]).strip()
+                    if pd.notna(row.get("Group"))
+                    else "Other"
                 )
 
-                if existing_asset:
+                equipment_type = (
+                    str(row["Type"]).strip()
+                    if pd.notna(row.get("Type"))
+                    else ""
+                )
+
+                existing_asset = next(
+                    (
+                        asset for asset in st.session_state.assets
+                        if asset["Asset ID"] == asset_id
+                        and asset.get("Site ID") == site_record["Site ID"]
+                    ),
+                    None
+                )
+
+                if existing_asset is not None:
+                    # Preserve existing operational data and correct classification.
+                    existing_asset["Asset Type"] = asset_group
+                    existing_asset["Equipment Type"] = equipment_type
+                    updated_count += 1
                     skipped_count += 1
                     continue
 
@@ -880,16 +902,18 @@ elif page == "Asset Register":
                     "Site ID": site_record["Site ID"],
                     "Site": site_name,
                     "Location": str(row["Location"]),
-                    "Asset Type": "Other",
+                    "Asset Type": asset_group,
+                    "Equipment Type": equipment_type,
                     "Status": "Active",
                     "Equipment Status": str(row["Status"])
                 })
 
                 imported_count += 1
 
+
             st.session_state.asset_import_message = (
                 f"Import completed: {imported_count} assets added, "
-                f"{skipped_count} duplicates skipped, "
+                f"{updated_count} existing assets classified, "
                 f"{new_sites_count} new sites registered."
             )
 
