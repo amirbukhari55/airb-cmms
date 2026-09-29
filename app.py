@@ -171,7 +171,38 @@ if "assets" not in st.session_state:
         st.stop()
     
 if "pm_schedules" not in st.session_state:
-    st.session_state.pm_schedules = []
+    try:
+        response = (
+            supabase.table("pm_schedules")
+            .select("pm_schedule_id, site_id, pm_data")
+            .order("pm_schedule_id")
+            .execute()
+        )
+
+        loaded_pm = []
+
+        for row in response.data or []:
+            pm = row.get("pm_data") or {}
+
+            if isinstance(pm, str):
+                pm = json.loads(pm)
+
+            if not isinstance(pm, dict):
+                continue
+
+            pm["PM Schedule ID"] = row["pm_schedule_id"]
+            pm["Site ID"] = row["site_id"]
+
+            if pm.get("Asset"):
+                pm["Asset"] = str(pm["Asset"]).split(" - ")[0]
+
+            loaded_pm.append(pm)
+
+        st.session_state.pm_schedules = loaded_pm
+
+    except Exception as e:
+        st.error(f"Unable to load PM schedules from Supabase: {e}")
+        st.stop()
     
 
 if "work_orders" not in st.session_state:
