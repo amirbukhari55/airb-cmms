@@ -562,6 +562,59 @@ if page == "Dashboard":
                 )
             })
 
+        # --------------------------------
+        # MANAGEMENT PERFORMANCE CHART
+        # --------------------------------
+        st.subheader("Maintenance Performance by Site")
+
+        chart_data = []
+
+        for site in st.session_state.sites:
+
+            site_id = site["Site ID"]
+
+            site_work_orders = [
+                wo for wo in st.session_state.work_orders
+                if wo.get("Site ID") == site_id
+            ]
+
+            completed_wo = sum(
+                1 for wo in site_work_orders
+                if wo.get("Status") in ["Completed", "Closed"]
+            )
+
+            open_wo_count = sum(
+                1 for wo in site_work_orders
+                if wo.get("Status") not in ["Completed", "Closed"]
+            )
+
+            chart_data.append({
+                "Site": site["Site Name"],
+                "Completed WO": completed_wo,
+                "Open WO": open_wo_count
+            })
+
+        chart_df = pd.DataFrame(chart_data)
+
+        if not chart_df.empty:
+
+            st.bar_chart(
+                chart_df.set_index("Site"),
+                y=["Completed WO", "Open WO"],
+                x_label="Operational Site",
+                y_label="Number of Work Orders",
+                stack=False,
+                use_container_width=True
+            )
+
+        else:
+            st.info("No site performance data available.")
+
+        # --------------------------------
+        # DETAILED SITE PERFORMANCE
+        # --------------------------------
+        st.subheader("Detailed Site Performance")
+
         st.dataframe(
             site_summary,
             use_container_width=True,
