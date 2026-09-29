@@ -487,19 +487,6 @@ page = st.sidebar.radio(
     key="page"
 )
     
-[
-    "Dashboard",
-    "Site Master",
-    "Asset Register",
-    "PM Schedule",
-    "Work Orders",
-    "Corrective Maintenance",
-    "Procurement",
-    "Maintenance History"
-],
-    key="page"
-)
-
 
 # -----------------------------
 # DASHBOARD
