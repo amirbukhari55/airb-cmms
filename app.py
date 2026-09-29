@@ -1671,22 +1671,31 @@ elif page == "Work Orders":
     # --------------------------------
     # EQUIPMENT-SPECIFIC PM TEMPLATES
     # --------------------------------
+    
     PM_INSPECTION_TEMPLATES = {
         "Pump": [
-            "Inspect pump and mechanical seal for leakage",
-            "Check bearing temperature",
+            "Inspect pump casing, seals and connections for leakage",
+            "Check bearing temperature and lubrication",
             "Check abnormal noise and vibration",
-            "Check lubrication condition",
             "Record suction and discharge pressure",
-            "Record motor current"
+            "Record motor current",
+            "Verify operating flow and duty condition"
         ],
-        "Blower": [
-            "Inspect air filter condition",
-            "Check belt condition and tension",
+        "Submersible Pump": [
+            "Inspect lifting chain, guide rail and discharge connection",
+            "Check cable, gland and visible insulation condition",
             "Check abnormal noise and vibration",
-            "Record discharge pressure",
-            "Check operating temperature",
-            "Check lubrication condition"
+            "Record motor current",
+            "Verify level control and automatic operation",
+            "Check for blockage and leakage"
+        ],
+        "Dosing Pump": [
+            "Inspect dosing head, diaphragm and tubing for leakage",
+            "Check chemical tank level",
+            "Check suction strainer and injection point",
+            "Verify dosing stroke or speed setting",
+            "Record dosing flow or operating rate",
+            "Check calibration and pump operation"
         ],
         "RO High-Pressure Pump": [
             "Inspect mechanical seal for leakage",
@@ -1695,8 +1704,145 @@ elif page == "Work Orders":
             "Check abnormal noise and vibration",
             "Record motor current",
             "Inspect pump and motor condition"
+        ],
+        "Blower": [
+            "Inspect air filter condition",
+            "Check belt or coupling condition",
+            "Check abnormal noise and vibration",
+            "Record discharge pressure",
+            "Check operating temperature",
+            "Check lubrication condition"
+        ],
+        "Mixer": [
+            "Inspect impeller, shaft and mounting condition",
+            "Check abnormal noise and vibration",
+            "Inspect seals and bearings",
+            "Record motor current",
+            "Verify mixing performance",
+            "Check gearbox and lubrication where applicable"
+        ],
+        "Filter": [
+            "Inspect vessel and piping for leakage",
+            "Record inlet and outlet pressure",
+            "Check differential pressure",
+            "Inspect valves and actuators",
+            "Verify filtration performance",
+            "Check backwash operation where applicable"
+        ],
+        "Membrane System": [
+            "Record feed and permeate pressure",
+            "Record differential pressure",
+            "Record permeate flow",
+            "Check membrane integrity or operating performance",
+            "Inspect connections and housings for leakage",
+            "Review cleaning or backwash requirement"
+        ],
+        "Tank": [
+            "Inspect tank structure and supports",
+            "Check leakage, corrosion or visible damage",
+            "Inspect manhole, cover and access fittings",
+            "Verify level indication",
+            "Inspect inlet, outlet and overflow",
+            "Check cleanliness and sediment accumulation"
+        ],
+        "Aerator": [
+            "Inspect aerator and mounting condition",
+            "Check abnormal noise and vibration",
+            "Record motor current",
+            "Verify aeration performance",
+            "Inspect mechanical components",
+            "Check lubrication where applicable"
+        ],
+        "Diffuser": [
+            "Inspect diffuser condition where accessible",
+            "Check for blockage or fouling",
+            "Verify air distribution",
+            "Record air pressure where available",
+            "Check abnormal air release pattern",
+            "Inspect associated air piping"
+        ],
+        "Screen": [
+            "Inspect screen for debris and blockage",
+            "Check mechanical movement",
+            "Inspect drive, chain and bearings where applicable",
+            "Check abnormal noise and vibration",
+            "Verify cleaning or removal mechanism",
+            "Inspect structural and mounting condition"
+        ],
+        "Penstock": [
+            "Inspect gate, frame and sealing surfaces",
+            "Check opening and closing operation",
+            "Inspect spindle, actuator or handwheel",
+            "Check for leakage",
+            "Verify position indication where applicable",
+            "Inspect corrosion and mounting condition"
+        ],
+        "Valve": [
+            "Inspect valve body and connections for leakage",
+            "Check opening and closing operation",
+            "Inspect actuator or handwheel",
+            "Verify position indication",
+            "Check abnormal noise or vibration",
+            "Inspect seals and mounting condition"
+        ],
+        "Compressor": [
+            "Check lubrication and oil level where applicable",
+            "Inspect air filter",
+            "Record discharge pressure",
+            "Check abnormal noise and vibration",
+            "Inspect condensate drain",
+            "Check operating temperature"
+        ],
+        "DAF": [
+            "Inspect flotation tank and skimmer",
+            "Check recycle pump operation",
+            "Record recycle pressure",
+            "Inspect air saturation system",
+            "Verify sludge removal",
+            "Check effluent clarity and operating condition"
+        ],
+        "Clarifier": [
+            "Inspect tank and scraper mechanism",
+            "Check sludge collection and withdrawal",
+            "Inspect weirs and launders",
+            "Check abnormal noise and vibration",
+            "Verify sludge blanket or settling condition",
+            "Inspect drive and mechanical components"
+        ],
+        "Conveyor": [
+            "Inspect conveyor and support structure",
+            "Check drive, gearbox and bearings",
+            "Check abnormal noise and vibration",
+            "Inspect material buildup or blockage",
+            "Verify operating movement",
+            "Check guards and safety devices"
+        ],
+        "Crane": [
+            "Inspect visible structural condition",
+            "Check hoist and travel operation",
+            "Inspect hook, chain or wire rope",
+            "Check limit switches",
+            "Verify emergency stop",
+            "Check inspection and certification status"
+        ],
+        "Fan": [
+            "Inspect fan casing and impeller",
+            "Check abnormal noise and vibration",
+            "Inspect bearings and drive",
+            "Check air inlet and outlet",
+            "Record motor current",
+            "Verify airflow condition"
+        ],
+        "Skimmer": [
+            "Inspect skimmer mechanism",
+            "Check movement and drive",
+            "Inspect scum collection and discharge",
+            "Check abnormal noise and vibration",
+            "Verify operating performance",
+            "Inspect associated piping and fittings"
         ]
     }
+
 
     DEFAULT_PM_INSPECTION = [
         "Inspect equipment condition",
