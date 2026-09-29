@@ -820,104 +820,198 @@ elif page == "Asset Register":
             hide_index=True
         )
         
+        
         if st.button("Import Assets into CMMS", type="primary"):
 
             imported_count = 0
-            skipped_count = 0
+            updated_count = 0
             new_sites_count = 0
 
-            # Register sites found in Excel.
-            for site_name in import_df["Site"].dropna().unique():
+            def clean_excel_value(value, default=""):
+                if pd.isna(value):
+                    return default
+                return str(value).strip()
 
-                site_name = str(site_name).strip()
+            try:
+                # 1. Register missing sites in Supabase first.
+                site_lookup = {
+                    str(site["Site Name"]).strip().casefold(): site
+                    for site in st.session_state.sites
+                }
 
-                existing_site = next(
-                    (
-                        site for site in st.session_state.sites
-                        if site["Site Name"] == site_name
-                    ),
-                    None
-                )
+                used_site_ids = {
+                    str(site["Site ID"])
+                    for site in st.session_state.sites
+                }
 
-                if existing_site is None:
+                for raw_site_name in import_df["Site"].dropna().unique():
 
-                    new_site_id = f"SITE-{len(st.session_state.sites) + 1:03d}"
+                    site_name = str(raw_site_name).strip()
 
-                    st.session_state.sites.append({
+                    if not site_name:
+                        continue
+
+                    site_key = site_name.casefold()
+
+                    if site_key in site_lookup:
+                        continue
+
+                    site_number = 1
+
+                    while f"SITE-{site_number:03d}" in used_site_ids:
+                        site_number += 1
+
+                    new_site_id = f"SITE-{site_number:03d}"
+
+                    new_site = {
                         "Site ID": new_site_id,
                         "Site Name": site_name,
                         "Location": "",
                         "Plant Type": "Other",
                         "Status": "Active"
-                    })
+                    }
 
+                    site_result = supabase.table("sites").insert({
+                        "site_id": new_site_id,
+                        "site_name": site_name,
+                        "site_data": {
+                            "Location": "",
+                            "Plant Type": "Other",
+                            "Status": "Active"
+                        }
+                    }).execute()
+
+                    if not site_result.data:
+                        raise RuntimeError(
+                            f"Supabase did not confirm site: {site_name}"
+                        )
+
+                    st.session_state.sites.append(new_site)
+                    site_lookup[site_key] = new_site
+                    used_site_ids.add(new_site_id)
                     new_sites_count += 1
 
-            
-            # Import equipment records and update existing classifications.
-            updated_count = 0
-
-            for _, row in import_df.iterrows():
-
-                asset_id = str(row["Tag No"]).strip()
-                site_name = str(row["Site"]).strip()
-
-                site_record = next(
-                    site for site in st.session_state.sites
-                    if site["Site Name"] == site_name
-                )
-
-                asset_group = (
-                    str(row["Group"]).strip()
-                    if pd.notna(row.get("Group"))
-                    else "Other"
-                )
-
-                equipment_type = (
-                    str(row["Type"]).strip()
-                    if pd.notna(row.get("Type"))
-                    else ""
-                )
-
-                existing_asset = next(
+                # 2. Prepare assets using the actual Excel classifications.
+                existing_lookup = {
                     (
-                        asset for asset in st.session_state.assets
-                        if asset["Asset ID"] == asset_id
-                        and asset.get("Site ID") == site_record["Site ID"]
-                    ),
-                    None
+                        str(asset["Asset ID"]).strip(),
+                        str(asset.get("Site ID", "")).strip()
+                    ): asset
+                    for asset in st.session_state.assets
+                }
+
+                asset_payloads = {}
+
+                for _, row in import_df.iterrows():
+
+                    asset_id = clean_excel_value(row["Tag No"])
+                    site_name = clean_excel_value(row["Site"])
+
+                    if not asset_id or not site_name:
+                        continue
+
+                    site_record = site_lookup.get(site_name.casefold())
+
+                    if site_record is None:
+                        raise RuntimeError(
+                            f"Site mapping not found: {site_name}"
+                        )
+
+                    site_id = site_record["Site ID"]
+                    asset_key = (asset_id, site_id)
+
+                    asset_group = clean_excel_value(
+                        row.get("Group"), "Other"
+                    ) or "Other"
+
+                    equipment_type = clean_excel_value(
+                        row.get("Type")
+                    )
+
+                    existing_asset = existing_lookup.get(asset_key)
+
+                    if existing_asset is not None:
+                        # Retain existing operational fields.
+                        asset_data = existing_asset.copy()
+                        updated_count += 1
+                    else:
+                        asset_data = {
+                            "Asset ID": asset_id,
+                            "Asset Name": clean_excel_value(
+                                row.get("Description")
+                            ),
+                            "Site ID": site_id,
+                            "Site": site_name,
+                            "Location": clean_excel_value(
+                                row.get("Location")
+                            ),
+                            "Status": "Active",
+                            "Equipment Status": clean_excel_value(
+                                row.get("Status")
+                            )
+                        }
+                        imported_count += 1
+
+                    asset_data["Asset Type"] = asset_group
+                    asset_data["Equipment Type"] = equipment_type
+
+                    asset_payloads[asset_key] = {
+                        "asset_id": asset_id,
+                        "site_id": site_id,
+                        "asset_data": asset_data
+                    }
+
+                # 3. Save assets to Supabase in batches.
+                payload_list = list(asset_payloads.values())
+                batch_size = 100
+
+                for start in range(0, len(payload_list), batch_size):
+
+                    batch = payload_list[start:start + batch_size]
+
+                    result = supabase.table("assets").upsert(
+                        batch,
+                        on_conflict="asset_id,site_id"
+                    ).execute()
+
+                    if not result.data or len(result.data) != len(batch):
+                        raise RuntimeError(
+                            "Supabase did not confirm all assets in "
+                            f"batch starting at record {start + 1}."
+                        )
+
+                # 4. Update the current session only after database save.
+                for payload in payload_list:
+                    asset_key = (
+                        payload["asset_id"],
+                        payload["site_id"]
+                    )
+
+                    if asset_key in existing_lookup:
+                        existing_lookup[asset_key].update(
+                            payload["asset_data"]
+                        )
+                    else:
+                        st.session_state.assets.append(
+                            payload["asset_data"]
+                        )
+
+                st.session_state.asset_import_message = (
+                    f"Database import completed: "
+                    f"{imported_count} assets added, "
+                    f"{updated_count} existing assets classified, "
+                    f"{new_sites_count} new sites registered."
                 )
 
-                if existing_asset is not None:
-                    # Preserve existing operational data and correct classification.
-                    existing_asset["Asset Type"] = asset_group
-                    existing_asset["Equipment Type"] = equipment_type
-                    updated_count += 1
-                    skipped_count += 1
-                    continue
+                st.rerun()
 
-                st.session_state.assets.append({
-                    "Asset ID": asset_id,
-                    "Asset Name": str(row["Description"]).strip(),
-                    "Site ID": site_record["Site ID"],
-                    "Site": site_name,
-                    "Location": str(row["Location"]),
-                    "Asset Type": asset_group,
-                    "Equipment Type": equipment_type,
-                    "Status": "Active",
-                    "Equipment Status": str(row["Status"])
-                })
+            except Exception as e:
+                st.error(
+                    f"Import could not be completed: {e}. "
+                    "Some earlier batches or sites may already have "
+                    "been saved. Refresh before retrying."
+                )
 
-                imported_count += 1
-
-
-            st.session_state.asset_import_message = (
-                f"Import completed: {imported_count} assets added, "
-                f"{updated_count} existing assets classified, "
-                f"{new_sites_count} new sites registered."
-            )
-
-            st.rerun()
 
         if "asset_import_message" in st.session_state:
             st.success(st.session_state.pop("asset_import_message"))
