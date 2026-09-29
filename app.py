@@ -2176,6 +2176,21 @@ elif page == "Work Orders":
             )
 
             
+            maintenance_type_options = [
+                "Breakdown / Emergency",
+                "Calibration",
+                "Corrective Maintenance",
+                "Inspection",
+                "Preventive Maintenance",
+                "Testing"
+            ]
+
+            updated_maintenance_type = st.selectbox(
+                "Maintenance Type",
+                maintenance_type_options,
+                index=maintenance_type_options.index(selected_wo.get("Type", "Inspection")),
+                key=f"update_maintenance_type_{selected_wo_id}"
+            )
             actual_hours = st.number_input(
                 "Actual Maintenance Hours",
                 min_value=0.0,
@@ -2286,6 +2301,7 @@ elif page == "Work Orders":
                         st.stop()
                 updated_wo = selected_wo.copy()
                 updated_wo["Status"] = new_status
+                updated_wo["Type"] = updated_maintenance_type
                 updated_wo["Actual Hours"] = actual_hours
                 updated_wo["Maintenance Remarks"] = maintenance_remarks
                 updated_wo["Safety Checklist"] = safety_record
