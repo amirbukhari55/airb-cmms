@@ -3258,12 +3258,40 @@ elif page == "Corrective Maintenance":
                                 }).execute()
 
                             except Exception as e:
-                                st.error(
-                                    f"CM {clean_cm_id} was saved to Supabase, "
-                                    f"but its procurement request was not. "
-                                    f"Do not resubmit the same CM ID. "
-                                    f"Error: {e}"
-                                )
+                                # Roll back the newly created CM if its
+                                # linked procurement request cannot be saved.
+                                try:
+                                    rollback = (
+                                        supabase.table("corrective_maintenance")
+                                        .delete()
+                                        .eq("cm_id", clean_cm_id)
+                                        .eq("site_id", selected_site_id)
+                                        .execute()
+                                    )
+
+                                    if not rollback.data:
+                                        raise RuntimeError(
+                                            "CM rollback could not be confirmed."
+                                        )
+
+                                    st.error(
+                                        "The procurement request could not be saved. "
+                                        "The new CM was rolled back. "
+                                        "No incomplete CM/procurement pair was retained. "
+                                        f"Original error: {e}"
+                                    )
+
+                                except Exception as rollback_error:
+                                    st.error(
+                                        f"CM {clean_cm_id} was saved, but its "
+                                        "procurement request failed and rollback "
+                                        "could not be confirmed. Do not resubmit "
+                                        "the same CM ID until the Supabase records "
+                                        "are checked. "
+                                        f"Save error: {e}. "
+                                        f"Rollback error: {rollback_error}"
+                                    )
+
                                 st.stop()
 
                         # Update current session after successful saves.
