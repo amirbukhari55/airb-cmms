@@ -2011,16 +2011,36 @@ elif page == "Work Orders":
             else selected_wo["Asset"]
         )
 
-        # Identify the appropriate inspection checklist
-        if equipment_type == "Pump" and "RO" in asset_name.upper():
+        
+        # Identify the appropriate inspection checklist.
+        template_aliases = {
+            "Air Compressor": "Compressor",
+            "Membrane": "Membrane System",
+            "RO Membrane": "Membrane System",
+            "Dosing Pump": "Dosing Pump",
+            "Submersible Pump": "Submersible Pump",
+            "Filter": "Filter",
+            "Tank": "Tank",
+            "Aerator": "Aerator",
+            "Diffuser": "Diffuser",
+            "Mixer": "Mixer",
+            "Blower": "Blower",
+            "Pump": "Pump"
+        }
+
+        if equipment_type == "Pump" and "RO" in asset_name.upper() and "HIGH PRESSURE" in asset_name.upper():
             template_name = "RO High-Pressure Pump"
         else:
-            template_name = equipment_type
+            template_name = template_aliases.get(
+                equipment_type,
+                equipment_type
+            )
 
         inspection_items = PM_INSPECTION_TEMPLATES.get(
             template_name,
             DEFAULT_PM_INSPECTION
         )
+
         # Load previously saved inspection results for this Work Order
         saved_inspection = selected_wo.get("Inspection Results", {})
         
