@@ -684,6 +684,42 @@ if page == "Dashboard":
         disabled=report_df.empty
     )
 
+    # --------------------------------
+    # PM SCHEDULE REPORT EXPORT
+    # --------------------------------
+    st.subheader("Preventive Maintenance Report")
+
+    pm_report_columns = [
+        "PM Schedule ID",
+        "Site ID",
+        "Asset",
+        "Task",
+        "Maintenance Type",
+        "Frequency",
+        "Next Due Date",
+        "Assigned Technician",
+        "Estimated Hours",
+        "Status"
+    ]
+
+    pm_report_df = pd.DataFrame(
+        dashboard_pm
+    ).reindex(columns=pm_report_columns)
+
+    st.caption(
+        f"{len(pm_report_df)} PM schedules for the selected site view."
+    )
+
+    st.download_button(
+        label="Download PM Schedule Report (CSV)",
+        data=pm_report_df.to_csv(index=False).encode("utf-8-sig"),
+        file_name=(
+            f"AIRB_PM_Schedule_Report_{selected_site_id}_"
+            f"{today.strftime('%Y%m%d')}.csv"
+        ),
+        mime="text/csv",
+        disabled=pm_report_df.empty
+    )
 # -----------------------------
 # OTHER MODULES
 # -----------------------------
