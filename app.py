@@ -1262,6 +1262,10 @@ elif page == "PM Schedule":
             # Check existing records, including those loaded from Supabase
             existing_wo = any(
                 wo.get("WO ID") == wo_id
+                or (
+                    wo.get("PM Schedule ID") == pm_id
+                    and wo.get("Status") not in ["Closed", "Completed"]
+                )
                 for wo in st.session_state.work_orders
             )
 
