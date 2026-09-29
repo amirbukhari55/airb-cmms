@@ -17,9 +17,10 @@ def get_admin_client():
 
 def get_auth_client():
     # Separate client for each login session.
+    # Uses the existing server-side Supabase key.
     return create_client(
         st.secrets["supabase"]["url"],
-        st.secrets["supabase"]["publishable_key"]
+        st.secrets["supabase"]["key"]
     )
 
 
