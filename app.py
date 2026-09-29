@@ -1256,12 +1256,12 @@ elif page == "PM Schedule":
                 continue
 
             pm_id = pm["PM Schedule ID"]
-            wo_id = f"WO-{pm_id}"
+            due_date = pd.to_datetime(pm["Next Due Date"]).strftime("%Y%m%d")
+            wo_id = f"WO-{pm_id}-{due_date}"
 
             # Check existing records, including those loaded from Supabase
             existing_wo = any(
-                wo.get("PM Schedule ID") == pm_id
-                or wo.get("WO ID") == wo_id
+                wo.get("WO ID") == wo_id
                 for wo in st.session_state.work_orders
             )
 
@@ -1271,6 +1271,7 @@ elif page == "PM Schedule":
             new_wo = {
                 "WO ID": wo_id,
                 "PM Schedule ID": pm_id,
+                "Scheduled Due Date": pm["Next Due Date"],
                 "Site ID": pm.get("Site ID"),
                 "Asset": pm["Asset"],
                 "Work": pm["Task"],
