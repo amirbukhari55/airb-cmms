@@ -3507,11 +3507,20 @@ elif page == "Procurement":
                 updated_request["Status"] = updated_status
 
                 try:
-                    supabase.table("procurement_requests").update({
-                        "request_data": updated_request
-                    }).eq(
-                        "request_id", selected_request_id
-                    ).execute()
+                    response = (
+                        supabase.table("procurement_requests")
+                        .update({"request_data": updated_request})
+                        .eq("request_id", selected_request_id)
+                        .eq("site_id", selected_request["Site ID"])
+                        .execute()
+                    )
+
+                    if not response.data:
+                        st.error(
+                            "Procurement request was not found in Supabase "
+                            "for the selected site."
+                        )
+                        st.stop()
 
                     selected_request.update(updated_request)
 
