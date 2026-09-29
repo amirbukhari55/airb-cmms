@@ -644,6 +644,46 @@ if page == "Dashboard":
     else:
         st.success("No outstanding work orders.")
 
+    st.divider()
+
+    # --------------------------------
+    # WORK ORDER REPORT EXPORT
+    # --------------------------------
+    st.subheader("Work Order Report")
+
+    report_columns = [
+        "WO ID",
+        "Site ID",
+        "Asset",
+        "Work",
+        "Type",
+        "Priority",
+        "Assigned To",
+        "Status",
+        "Estimated Hours",
+        "Actual Hours",
+        "Review Date"
+    ]
+
+    report_df = pd.DataFrame(
+        dashboard_wo
+    ).reindex(columns=report_columns)
+
+    st.caption(
+        f"{len(report_df)} work orders for the selected site view."
+    )
+
+    st.download_button(
+        label="Download Work Order Report (CSV)",
+        data=report_df.to_csv(index=False).encode("utf-8-sig"),
+        file_name=(
+            f"AIRB_Work_Order_Report_{selected_site_id}_"
+            f"{today.strftime('%Y%m%d')}.csv"
+        ),
+        mime="text/csv",
+        disabled=report_df.empty
+    )
+
 # -----------------------------
 # OTHER MODULES
 # -----------------------------
