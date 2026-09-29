@@ -611,69 +611,52 @@ if page == "Dashboard":
             st.info("No site performance data available.")
 
         # --------------------------------
-        # PM DUE STATUS BY SITE
+        # CORRECTIVE MAINTENANCE BY SITE
         # --------------------------------
-        st.subheader("Preventive Maintenance Due Status by Site")
+        st.subheader("Corrective Maintenance Performance by Site")
 
-        pm_chart_data = []
+        cm_chart_data = []
 
         for site in st.session_state.sites:
 
             site_id = site["Site ID"]
 
-            site_pm_records = [
-                pm for pm in st.session_state.pm_schedules
-                if pm.get("Site ID") == site_id
-                and pm.get("Status") == "Active"
+            site_cm_records = [
+                cm for cm in st.session_state.corrective_maintenance
+                if cm.get("Site ID") == site_id
             ]
 
-            overdue_count = 0
-            due_today_count = 0
-            upcoming_count = 0
+            completed_cm = sum(
+                1 for cm in site_cm_records
+                if cm.get("Status") in ["Completed", "Closed"]
+            )
 
-            for pm in site_pm_records:
+            open_cm_count = sum(
+                1 for cm in site_cm_records
+                if cm.get("Status") not in ["Completed", "Closed"]
+            )
 
-                due_date = pd.to_datetime(
-                    pm.get("Next Due Date"),
-                    errors="coerce"
-                )
-
-                if pd.isna(due_date):
-                    continue
-
-                due_date = due_date.date()
-
-                if due_date < today:
-                    overdue_count += 1
-
-                elif due_date == today:
-                    due_today_count += 1
-
-                else:
-                    upcoming_count += 1
-
-            pm_chart_data.append({
+            cm_chart_data.append({
                 "Site": site["Site Name"],
-                "Overdue": overdue_count,
-                "Due Today": due_today_count,
-                "Upcoming": upcoming_count
+                "Completed CM": completed_cm,
+                "Open CM": open_cm_count
             })
 
-        pm_chart_df = pd.DataFrame(pm_chart_data)
+        cm_chart_df = pd.DataFrame(cm_chart_data)
 
-        if not pm_chart_df.empty:
+        if not cm_chart_df.empty:
 
             st.bar_chart(
-                pm_chart_df.set_index("Site"),
-                y=["Overdue", "Due Today", "Upcoming"],
+                cm_chart_df.set_index("Site"),
+                y=["Completed CM", "Open CM"],
                 x_label="Operational Site",
-                y_label="Number of PM Schedules",
+                y_label="Number of CM Records",
                 stack=False,
                 use_container_width=True
             )
 
         else:
-            st.info("No preventive maintenance data available.")
+            st.info("No corrective maintenance data available.")
 
         st.divider()
         # --------------------------------
