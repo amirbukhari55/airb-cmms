@@ -2323,6 +2323,100 @@ elif page == "Corrective Maintenance":
         ]
 
     # --------------------------------
+    # UPDATE CORRECTIVE MAINTENANCE
+    # --------------------------------
+    st.subheader("Update Corrective Maintenance")
+
+    active_cm = [
+        cm for cm in site_cm_records
+        if cm.get("Status") not in ["Completed", "Closed"]
+    ]
+
+    if active_cm:
+
+        cm_options = [cm["CM ID"] for cm in active_cm]
+
+        selected_cm_id = st.selectbox(
+            "Select Corrective Maintenance",
+            cm_options,
+            key="update_cm_id"
+        )
+
+        selected_cm = next(
+            cm for cm in active_cm
+            if cm["CM ID"] == selected_cm_id
+        )
+
+        st.write(f"**Related WO:** {selected_cm['WO ID']}")
+        st.write(f"**Problem:** {selected_cm['Problem']}")
+
+        cm_status_options = [
+            "Open",
+            "In Progress",
+            "Pending Engineer Review",
+            "Completed"
+        ]
+
+        updated_cm_status = st.selectbox(
+            "New CM Status",
+            cm_status_options,
+            index=(
+                cm_status_options.index(selected_cm["Status"])
+                if selected_cm["Status"] in cm_status_options
+                else 0
+            )
+        )
+
+        updated_cm_action = st.text_area(
+            "Corrective Action / Resolution",
+            value=selected_cm.get("Corrective Action", ""),
+            key=f"cm_action_{selected_cm_id}"
+        )
+
+        if st.button("Update Corrective Maintenance"):
+
+            if (
+                updated_cm_status in ["Pending Engineer Review", "Completed"]
+                and not updated_cm_action.strip()
+            ):
+                st.error("Enter the corrective action before proceeding.")
+                st.stop()
+
+            updated_cm = selected_cm.copy()
+            updated_cm["Status"] = updated_cm_status
+            updated_cm["Corrective Action"] = updated_cm_action.strip()
+
+            try:
+                response = supabase.table(
+                    "corrective_maintenance"
+                ).update({
+                    "cm_data": updated_cm
+                }).eq(
+                    "cm_id", selected_cm_id
+                ).eq(
+                    "site_id", selected_cm["Site ID"]
+                ).execute()
+
+                if not response.data:
+                    st.error("CM record was not found in Supabase.")
+                    st.stop()
+
+                selected_cm.update(updated_cm)
+
+            except Exception as e:
+                st.error(f"Unable to update CM: {e}")
+                st.stop()
+
+            st.success(
+                f"{selected_cm_id} updated to {updated_cm_status}."
+            )
+            st.rerun()
+
+    else:
+        st.info("No active CM records to update.")
+
+    st.divider()
+    # --------------------------------
     # OPEN CORRECTIVE MAINTENANCE
     # --------------------------------
     st.subheader("Open Corrective Maintenance")
