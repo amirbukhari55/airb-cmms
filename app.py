@@ -2408,6 +2408,11 @@ elif page == "Work Orders":
                                 and scheduled_date == current_due
                             ):
                                 next_due = scheduled_date + offset
+                                today = pd.Timestamp.today().normalize()
+
+                                # Resume at the next future scheduled occurrence.
+                                while next_due <= today:
+                                    next_due = next_due + offset
 
                                 updated_pm = pm_record.copy()
                                 updated_pm["Next Due Date"] = (
