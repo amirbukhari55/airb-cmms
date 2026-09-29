@@ -4002,23 +4002,7 @@ elif page == "Maintenance History":
             "Status": wo.get("Status", "")
         })
 
-    # Retain existing history records without duplicating WOs
-    existing_wo_ids = {
-        record["WO ID"] for record in history_records
-    }
-
-    for record in st.session_state.maintenance_history:
-
-        if record.get("WO ID") in existing_wo_ids:
-            continue
-
-        if (
-            selected_site_id != "ALL"
-            and record.get("Site ID") != selected_site_id
-        ):
-            continue
-
-        history_records.append(record)
+    
 
     history_df = pd.DataFrame(
         history_records,
