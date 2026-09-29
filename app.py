@@ -2519,10 +2519,22 @@ elif page == "Work Orders":
                         if offset is not None:
                             scheduled_due = review_wo.get("Scheduled Due Date")
 
-                            if scheduled_due:
-                                scheduled_date = pd.Timestamp(scheduled_due)
-                            else:
-                                scheduled_date = None
+                            # Support WOs created before Scheduled Due Date was added.
+                            if not scheduled_due:
+                                wo_id = review_wo.get("WO ID", "")
+                                date_suffix = wo_id.rsplit("-", 1)[-1]
+
+                                if (
+                                    len(date_suffix) == 8
+                                    and date_suffix.isdigit()
+                                ):
+                                    scheduled_due = date_suffix
+
+                            scheduled_date = (
+                                pd.to_datetime(scheduled_due, errors="coerce")
+                                if scheduled_due
+                                else pd.NaT
+                            )
 
                             current_due = pd.Timestamp(
                                 pm_record["Next Due Date"]
@@ -2530,7 +2542,7 @@ elif page == "Work Orders":
 
                             # Do not advance twice for the same occurrence.
                             if (
-                                scheduled_date is not None
+                                pd.notna(scheduled_date)
                                 and scheduled_date == current_due
                             ):
                                 next_due = scheduled_date + offset
