@@ -354,6 +354,19 @@ if page == "Dashboard":
     st.title("Maintenance Dashboard")
     st.caption("AIRB Centralised Maintenance Management System")
 
+    if st.button("🔄 Refresh Dashboard Data"):
+        for key in [
+            "assets",
+            "pm_schedules",
+            "work_orders",
+            "corrective_maintenance",
+            "procurement_requests",
+            "cm_procurement_loaded"
+        ]:
+            st.session_state.pop(key, None)
+
+        st.rerun()
+
     today = pd.Timestamp.today().date()
 
     # --------------------------------
