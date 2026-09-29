@@ -95,11 +95,16 @@ if not st.session_state.authenticated:
 
             st.rerun()
 
-        except Exception:
-            st.error(
-                "Login failed. Check your credentials or "
-                "contact the CMMS administrator."
-            )
+        except Exception as e:
+            st.error(f"Login error type: {type(e).__name__}")
+
+            if isinstance(e, KeyError):
+                st.error("A required Streamlit Secrets entry is missing.")
+            else:
+                st.error(
+                    "Authentication or profile lookup failed. "
+                    "Check the Streamlit app logs for details."
+                )
 
     st.stop()
 
