@@ -3788,8 +3788,13 @@ st.divider()
 st.subheader("Engineer Review & Approval")
 
 pending_cm = [
-    cm for cm in site_cm_records
-    if cm.get("Status") == "Pending Engineer Review"
+    cm for cm in st.session_state.corrective_maintenance
+    if can_access_site(cm.get("Site ID"))
+    and (
+        selected_site_id == "ALL"
+        or cm.get("Site ID") == selected_site_id
+    )
+    and cm.get("Status") == "Pending Engineer Review"
 ]
 
 if pending_cm:
