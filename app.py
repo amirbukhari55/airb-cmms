@@ -226,6 +226,20 @@ def is_read_only_user():
 
     return role == "Management"
 
+def filter_authorised_records(records):
+    """
+    Remove records belonging to sites that the
+    current user is not authorised to access.
+    """
+
+    if not records:
+        return []
+
+    return [
+        record for record in records
+        if can_access_site(record.get("Site ID"))
+    ]
+    
 # -----------------------------
 # SUPABASE CONNECTION TEST
 # -----------------------------
