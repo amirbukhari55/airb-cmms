@@ -3472,8 +3472,13 @@ elif page == "Corrective Maintenance":
 st.subheader("Incident / Emergency Report (IER)")
 
 ier_cm_candidates = [
-    cm for cm in site_cm_records
-    if cm.get("Status") not in ["Completed", "Closed"]
+    cm for cm in st.session_state.corrective_maintenance
+    if can_access_site(cm.get("Site ID"))
+    and (
+        selected_site_id == "ALL"
+        or cm.get("Site ID") == selected_site_id
+    )
+    and cm.get("Status") not in ["Completed", "Closed"]
 ]
 
 if ier_cm_candidates:
