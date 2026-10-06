@@ -397,12 +397,14 @@ if "pm_schedules" not in st.session_state:
 
             loaded_pm.append(pm)
 
-        st.session_state.pm_schedules = loaded_pm
+        st.session_state.pm_schedules = filter_authorised_records(
+            loaded_pm
+        )
 
     except Exception as e:
         st.error(f"Unable to load PM schedules from Supabase: {e}")
         st.stop()
-    
+
 
 if "work_orders" not in st.session_state:
     try:
@@ -426,18 +428,22 @@ if "work_orders" not in st.session_state:
 
             loaded_work_orders.append(wo)
 
-        st.session_state.work_orders = loaded_work_orders
+        st.session_state.work_orders = filter_authorised_records(
+            loaded_work_orders
+        )
 
     except Exception as e:
         st.error(f"Unable to load work orders from Supabase: {e}")
         st.stop()
-    
+
+
 if "corrective_maintenance" not in st.session_state:
     st.session_state.corrective_maintenance = []
-    
+
 if "procurement_requests" not in st.session_state:
     st.session_state.procurement_requests = []
-    
+
+
 if "cm_procurement_loaded" not in st.session_state:
     try:
         cm_response = (
@@ -446,13 +452,17 @@ if "cm_procurement_loaded" not in st.session_state:
             .execute()
         )
 
-        st.session_state.corrective_maintenance = []
+        loaded_cm = []
 
         for row in cm_response.data or []:
             record = row.get("cm_data") or {}
             record["CM ID"] = row["cm_id"]
             record["Site ID"] = row["site_id"]
-            st.session_state.corrective_maintenance.append(record)
+            loaded_cm.append(record)
+
+        st.session_state.corrective_maintenance = filter_authorised_records(
+            loaded_cm
+        )
 
         procurement_response = (
             supabase.table("procurement_requests")
@@ -460,15 +470,23 @@ if "cm_procurement_loaded" not in st.session_state:
             .execute()
         )
 
-        st.session_state.procurement_requests = []
+        loaded_procurement = []
 
         for row in procurement_response.data or []:
             record = row.get("request_data") or {}
             record["Request ID"] = row["request_id"]
             record["Site ID"] = row["site_id"]
-            st.session_state.procurement_requests.append(record)
+            loaded_procurement.append(record)
+
+        st.session_state.procurement_requests = filter_authorised_records(
+            loaded_procurement
+        )
 
         st.session_state.cm_procurement_loaded = True
+
+    except Exception as e:
+        st.error(f"Unable to load CM / Procurement records: {e}")
+        st.stop()
 
     except Exception as e:
         st.error(f"Unable to load CM / Procurement records: {e}")
