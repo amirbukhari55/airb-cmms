@@ -361,7 +361,9 @@ if "assets" not in st.session_state:
 
             loaded_assets.append(asset)
 
-        st.session_state.assets = loaded_assets
+        st.session_state.assets = filter_authorised_records(
+            loaded_assets
+        )
 
     except Exception as e:
         st.error(f"Unable to load assets from Supabase: {e}")
