@@ -1794,8 +1794,18 @@ elif page == "PM Schedule":
     st.subheader("Generate Work Orders")
 
     
-    if st.button("Generate Work Orders for Due PM"):
-
+    if st.button(
+        "Generate Work Orders for Due PM",
+        disabled=not can_approve_maintenance()
+    ):
+    
+        if not can_approve_maintenance():
+            st.error(
+                "Only Engineers and Administrators can generate "
+                "preventive maintenance Work Orders."
+            )
+            st.stop()
+    
         generated_count = 0
         today = pd.Timestamp.today().date()
 
@@ -1968,10 +1978,18 @@ elif page == "PM Schedule":
                 )
 
                 submitted = st.form_submit_button(
-                    "Create PM Schedule"
+                    "Create PM Schedule",
+                    disabled=not can_approve_maintenance()
                 )
 
             if submitted:
+                
+                if not can_approve_maintenance():
+                    st.error(
+                        "Only Engineers and Administrators can create "
+                        "preventive maintenance schedules."
+                    )
+                    st.stop()
 
                 clean_pm_id = pm_id.strip()
 
