@@ -3578,11 +3578,21 @@ if ier_cm_candidates:
             key=f"ier_designation_{ier_cm_id}"
         )
 
-        save_ier_draft = st.button(
-            "Save IER Draft",
-            type="primary",
-            key=f"save_ier_draft_{ier_cm_id}"
-        )
+        col1, col2 = st.columns(2)
+
+        with col1:
+            save_ier_draft = st.button(
+                "Save IER Draft",
+                key=f"save_ier_draft_{ier_cm_id}"
+            )
+        
+        with col2:
+            finalise_ier = st.button(
+                "Finalise IER",
+                type="primary",
+                key=f"finalise_ier_{ier_cm_id}",
+                disabled=not can_approve_maintenance()
+            )
 
         if save_ier_draft:
 
@@ -3672,7 +3682,86 @@ if ier_cm_candidates:
             )
 
             st.rerun()
-
+    if finalise_ier:
+    
+        if not can_approve_maintenance():
+            st.error(
+                "Only Engineers and Administrators "
+                "can finalise an IER."
+            )
+            st.stop()
+    
+        if not ier_report_no.strip():
+            st.error("IER Report No. is required.")
+            st.stop()
+    
+        if not ier_description.strip():
+            st.error(
+                "Incident / Emergency Description is required."
+            )
+            st.stop()
+    
+        updated_cm = ier_cm.copy()
+    
+        updated_cm["IER Required"] = True
+        updated_cm["IER Status"] = "Finalised"
+        updated_cm["IER Report No."] = ier_report_no.strip()
+        updated_cm["IER Date"] = ier_date.strftime("%Y-%m-%d")
+        updated_cm["IER From"] = ier_from.strip()
+        updated_cm["IER Subject"] = ier_subject.strip()
+        updated_cm["IER Location"] = ier_location.strip()
+        updated_cm["IER Description"] = ier_description.strip()
+        updated_cm["IER Immediate Action"] = ier_action.strip()
+        updated_cm["IER Requested By"] = ier_requested_by.strip()
+        updated_cm["IER Designation"] = ier_designation.strip()
+    
+        updated_cm["IER Finalised By"] = (
+            st.session_state.current_user.get(
+                "full_name",
+                ""
+            )
+        )
+    
+        updated_cm["IER Finalised Date"] = (
+            pd.Timestamp.now().isoformat()
+        )
+    
+        try:
+            response = (
+                supabase.table("corrective_maintenance")
+                .update({
+                    "cm_data": updated_cm
+                })
+                .eq(
+                    "cm_id",
+                    ier_cm_id
+                )
+                .eq(
+                    "site_id",
+                    ier_cm["Site ID"]
+                )
+                .execute()
+            )
+    
+            if not response.data:
+                st.error(
+                    "CM record was not found in Supabase."
+                )
+                st.stop()
+    
+            ier_cm.update(updated_cm)
+    
+        except Exception as e:
+            st.error(
+                f"Unable to finalise IER: {e}"
+            )
+            st.stop()
+    
+        st.session_state.ier_success_message = (
+            f"{ier_report_no} finalised successfully."
+        )
+    
+        st.rerun()
 else:
     st.info(
         "No active Corrective Maintenance records "
