@@ -507,24 +507,73 @@ st.set_page_config(
 )
 
 
-# -----------------------------
-# SIDEBAR
-# -----------------------------
-st.sidebar.title("🔧 AIRB CMMS")
-st.sidebar.caption("Computerized Maintenance Management System")
-
 # --------------------------------
-# SITE SELECTION
+# ROLE-BASED SITE SELECTION
 # --------------------------------
-site_options = {
-    "ALL": "All Sites (Management View)"
-}
 
-for site in st.session_state.sites:
-    if site["Status"] == "Active":
-        site_options[site["Site ID"]] = (
-            f"{site['Site ID']} - {site['Site Name']}"
+current_user = st.session_state.current_user
+user_role = current_user.get("role")
+assigned_site_id = current_user.get("site_id")
+
+site_options = {}
+
+# Administrator and Management:
+# Can view consolidated management view + individual sites.
+if user_role in ["Administrator", "Management"]:
+
+    site_options["ALL"] = "All Sites (Management View)"
+
+    for site in st.session_state.sites:
+        if site.get("Status") == "Active":
+            site_options[site["Site ID"]] = (
+                f"{site['Site ID']} - {site['Site Name']}"
+            )
+
+# Engineer and Technician:
+# Can access their assigned operational site only.
+elif user_role in ["Engineer", "Technician"]:
+
+    if not assigned_site_id:
+        st.error(
+            "No operational site has been assigned to your account. "
+            "Please contact the CMMS Administrator."
         )
+        st.stop()
+
+    assigned_site = next(
+        (
+            site for site in st.session_state.sites
+            if site.get("Site ID") == assigned_site_id
+            and site.get("Status") == "Active"
+        ),
+        None
+    )
+
+    if assigned_site is None:
+        st.error(
+            "Your assigned operational site is unavailable or inactive."
+        )
+        st.stop()
+
+    site_options[assigned_site_id] = (
+        f"{assigned_site_id} - {assigned_site['Site Name']}"
+    )
+
+else:
+    st.error("Your account does not have a recognised CMMS role.")
+    st.stop()
+
+
+if not site_options:
+    st.error("No authorised operational sites are available.")
+    st.stop()
+
+
+# Remove an old site selection from a previous login/session
+# if that site is not authorised for the current user.
+if st.session_state.get("selected_site_id") not in site_options:
+    st.session_state["selected_site_id"] = next(iter(site_options))
+
 
 selected_site_id = st.sidebar.selectbox(
     "Select Operational Site",
