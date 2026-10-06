@@ -3466,6 +3466,228 @@ elif page == "Corrective Maintenance":
 
     st.divider()
 
+# --------------------------------
+# INCIDENT / EMERGENCY REPORT (IER)
+# --------------------------------
+st.subheader("Incident / Emergency Report (IER)")
+
+ier_cm_candidates = [
+    cm for cm in site_cm_records
+    if cm.get("Status") not in ["Completed", "Closed"]
+]
+
+if ier_cm_candidates:
+
+    ier_cm_id = st.selectbox(
+        "Select CM for IER",
+        [cm["CM ID"] for cm in ier_cm_candidates],
+        key="ier_cm_selection"
+    )
+
+    ier_cm = next(
+        cm for cm in ier_cm_candidates
+        if cm["CM ID"] == ier_cm_id
+    )
+
+    current_ier_status = ier_cm.get(
+        "IER Status",
+        "Not Created"
+    )
+
+    st.caption(
+        f"IER Status: {current_ier_status}"
+    )
+
+    with st.container(border=True):
+
+        ier_report_no = st.text_input(
+            "IER Report No.",
+            value=ier_cm.get(
+                "IER Report No.",
+                f"IER-{ier_cm_id}"
+            ),
+            key=f"ier_report_no_{ier_cm_id}"
+        )
+
+        ier_date = st.date_input(
+            "Report Date",
+            value=pd.Timestamp.today().date(),
+            key=f"ier_date_{ier_cm_id}"
+        )
+
+        ier_from = st.text_input(
+            "From",
+            value=st.session_state.current_user.get(
+                "full_name",
+                ""
+            ),
+            key=f"ier_from_{ier_cm_id}"
+        )
+
+        ier_subject = st.text_input(
+            "Subject / Re",
+            value=ier_cm.get(
+                "Problem",
+                ""
+            ),
+            key=f"ier_subject_{ier_cm_id}"
+        )
+
+        ier_location = st.text_input(
+            "Location",
+            value=ier_cm.get(
+                "Site ID",
+                ""
+            ),
+            key=f"ier_location_{ier_cm_id}"
+        )
+
+        ier_description = st.text_area(
+            "Incident / Emergency Description",
+            value=ier_cm.get(
+                "IER Description",
+                ier_cm.get("Problem", "")
+            ),
+            key=f"ier_description_{ier_cm_id}"
+        )
+
+        ier_action = st.text_area(
+            "Immediate / Corrective Action",
+            value=ier_cm.get(
+                "Corrective Action",
+                ""
+            ),
+            key=f"ier_action_{ier_cm_id}"
+        )
+
+        ier_requested_by = st.text_input(
+            "Requested By",
+            value=st.session_state.current_user.get(
+                "full_name",
+                ""
+            ),
+            key=f"ier_requested_by_{ier_cm_id}"
+        )
+
+        ier_designation = st.text_input(
+            "Designation",
+            value=st.session_state.current_user.get(
+                "role",
+                ""
+            ),
+            key=f"ier_designation_{ier_cm_id}"
+        )
+
+        save_ier_draft = st.button(
+            "Save IER Draft",
+            type="primary",
+            key=f"save_ier_draft_{ier_cm_id}"
+        )
+
+        if save_ier_draft:
+
+            if not can_edit_maintenance():
+                st.error(
+                    "You are not authorised to create or edit IER records."
+                )
+                st.stop()
+
+            if not ier_report_no.strip():
+                st.error("IER Report No. is required.")
+                st.stop()
+
+            if not ier_description.strip():
+                st.error(
+                    "Incident / Emergency Description is required."
+                )
+                st.stop()
+
+            updated_cm = ier_cm.copy()
+
+            updated_cm["IER Required"] = True
+            updated_cm["IER Status"] = "Draft"
+            updated_cm["IER Report No."] = (
+                ier_report_no.strip()
+            )
+            updated_cm["IER Date"] = (
+                ier_date.strftime("%Y-%m-%d")
+            )
+            updated_cm["IER From"] = (
+                ier_from.strip()
+            )
+            updated_cm["IER Subject"] = (
+                ier_subject.strip()
+            )
+            updated_cm["IER Location"] = (
+                ier_location.strip()
+            )
+            updated_cm["IER Description"] = (
+                ier_description.strip()
+            )
+            updated_cm["IER Immediate Action"] = (
+                ier_action.strip()
+            )
+            updated_cm["IER Requested By"] = (
+                ier_requested_by.strip()
+            )
+            updated_cm["IER Designation"] = (
+                ier_designation.strip()
+            )
+
+            try:
+                response = (
+                    supabase.table(
+                        "corrective_maintenance"
+                    )
+                    .update({
+                        "cm_data": updated_cm
+                    })
+                    .eq(
+                        "cm_id",
+                        ier_cm_id
+                    )
+                    .eq(
+                        "site_id",
+                        ier_cm["Site ID"]
+                    )
+                    .execute()
+                )
+
+                if not response.data:
+                    st.error(
+                        "CM record was not found in Supabase."
+                    )
+                    st.stop()
+
+                ier_cm.update(updated_cm)
+
+            except Exception as e:
+                st.error(
+                    f"Unable to save IER draft: {e}"
+                )
+                st.stop()
+
+            st.session_state.ier_success_message = (
+                f"{ier_report_no} saved as IER Draft."
+            )
+
+            st.rerun()
+
+else:
+    st.info(
+        "No active Corrective Maintenance records "
+        "available for IER creation."
+    )
+
+if "ier_success_message" in st.session_state:
+    st.success(
+        st.session_state.pop(
+            "ier_success_message"
+        )
+    )
+
+st.divider()
+    
     # --------------------------------
     # ENGINEER REVIEW & APPROVAL
     # --------------------------------
