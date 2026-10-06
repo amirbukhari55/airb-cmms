@@ -3889,6 +3889,13 @@ elif page == "Procurement":
     st.title("Maintenance Procurement")
     st.caption("Manage PR / IER requests generated from maintenance activities.")
 
+    if not can_manage_procurement():
+        st.error(
+            "Procurement access is restricted to "
+            "Engineers and Administrators."
+        )
+        st.stop()
+
     # -----------------------------
     # SITE-SPECIFIC PROCUREMENT DATA
     # -----------------------------
