@@ -144,6 +144,87 @@ with st.sidebar:
 
         st.rerun()
 
+# --------------------------------
+# ACCESS CONTROL
+# --------------------------------
+
+def can_access_site(site_id):
+    """
+    Check whether the currently logged-in user
+    is authorised to access a specific site.
+    """
+
+    user = st.session_state.current_user
+
+    if not user:
+        return False
+
+    role = user.get("role")
+    assigned_site = user.get("site_id")
+
+    # Administrator and Management can access all sites
+    if role in ["Administrator", "Management"]:
+        return True
+
+    # Engineer and Technician are restricted
+    # to their assigned operational site
+    if role in ["Engineer", "Technician"]:
+        return (
+            assigned_site is not None
+            and site_id == assigned_site
+        )
+
+    return False
+
+
+def can_edit_maintenance():
+    """
+    Users allowed to create/update maintenance records.
+    """
+
+    role = st.session_state.current_user.get("role")
+
+    return role in [
+        "Administrator",
+        "Engineer",
+        "Technician"
+    ]
+
+
+def can_approve_maintenance():
+    """
+    Users allowed to perform engineer approval.
+    """
+
+    role = st.session_state.current_user.get("role")
+
+    return role in [
+        "Administrator",
+        "Engineer"
+    ]
+
+
+def can_manage_procurement():
+    """
+    Users allowed to create/update procurement records.
+    """
+
+    role = st.session_state.current_user.get("role")
+
+    return role in [
+        "Administrator",
+        "Engineer"
+    ]
+
+
+def is_read_only_user():
+    """
+    Management users have monitoring/reporting access only.
+    """
+
+    role = st.session_state.current_user.get("role")
+
+    return role == "Management"
 
 # -----------------------------
 # SUPABASE CONNECTION TEST
