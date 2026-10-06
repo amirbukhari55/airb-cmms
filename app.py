@@ -3493,17 +3493,26 @@ elif page == "Corrective Maintenance":
                 approve_cm = st.button(
                     "Approve & Complete CM",
                     type="primary",
-                    key=f"approve_cm_{review_cm_id}"
+                    key=f"approve_cm_{review_cm_id}",
+                    disabled=not can_approve_maintenance()
                 )
-
+            
             with col2:
                 return_cm = st.button(
                     "Return for Rectification",
-                    key=f"return_cm_{review_cm_id}"
+                    key=f"return_cm_{review_cm_id}",
+                    disabled=not can_approve_maintenance()
                 )
 
             if approve_cm or return_cm:
 
+                if not can_approve_maintenance():
+                    st.error(
+                        "You are not authorised to approve or return "
+                        "Corrective Maintenance records."
+                    )
+                    st.stop()
+            
                 if not engineer_remarks.strip():
                     st.error("Engineer review remarks are required.")
                     st.stop()
