@@ -1757,7 +1757,9 @@ elif page == "PM Schedule":
 
             loaded_pm.append(pm)
 
-        st.session_state.pm_schedules = loaded_pm
+        st.session_state.pm_schedules = filter_authorised_records(
+            loaded_pm
+        )
 
     except Exception as e:
         st.error(f"Unable to load PM schedules from Supabase: {e}")
