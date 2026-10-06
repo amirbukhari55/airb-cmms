@@ -2898,7 +2898,13 @@ elif page == "Work Orders":
     # -----------------------------
     # ENGINEER REVIEW AND APPROVAL
     # -----------------------------
-    st.subheader("Engineer Review & Approval")
+    if can_approve_maintenance():
+        st.subheader("Engineer Review & Approval")
+    else:
+        st.info(
+            "Engineer review and Work Order closure are restricted "
+            "to Engineers and Administrators."
+        )
 
     pending_review_wos = [
         wo
@@ -2947,15 +2953,23 @@ elif page == "Work Orders":
             with col1:
                 approve_wo = st.button(
                     "Approve & Close Work Order",
-                    type="primary"
+                    type="primary",
+                    disabled=not can_approve_maintenance()
                 )
-
+            
             with col2:
                 return_wo = st.button(
-                    "Return for Rectification"
+                    "Return for Rectification",
+                    disabled=not can_approve_maintenance()
                 )
 
             if approve_wo:
+
+                if not can_approve_maintenance():
+                    st.error(
+                        "You are not authorised to approve or close Work Orders."
+                    )
+                    st.stop()
 
                 updated_wo = review_wo.copy()
                 updated_wo["Status"] = "Closed"
@@ -3106,6 +3120,12 @@ elif page == "Work Orders":
                 st.rerun()
 
             if return_wo:
+
+                if not can_approve_maintenance():
+                    st.error(
+                        "You are not authorised to return Work Orders for rectification."
+                    )
+                    st.stop()
 
                 if engineer_remarks.strip():
 
