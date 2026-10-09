@@ -2,6 +2,133 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client
 import json
+from docx import Document
+from io import BytesIO
+from pathlib import Path
+
+IER_TEMPLATE_PATH = (
+    Path(__file__).resolve().parent
+    / "templates"
+    / "AIRB-OP-F01 Operation Incident Emergency Report Temp.docx"
+)
+
+
+def generate_ier_docx(cm_record):
+    """
+    Generate AIRB Incident / Emergency Report using the
+    approved AIRB-OP-F01 Word template.
+    """
+
+    if not IER_TEMPLATE_PATH.exists():
+        raise FileNotFoundError(
+            f"IER template not found: {IER_TEMPLATE_PATH}"
+        )
+
+    doc = Document(IER_TEMPLATE_PATH)
+
+    # --------------------------------
+    # HELPER: REPLACE TEXT IN DOCUMENT
+    # --------------------------------
+    def replace_text(old_text, new_text):
+
+        new_text = str(new_text or "")
+
+        # Normal paragraphs
+        for paragraph in doc.paragraphs:
+            if old_text in paragraph.text:
+                for run in paragraph.runs:
+                    if old_text in run.text:
+                        run.text = run.text.replace(
+                            old_text,
+                            new_text
+                        )
+
+        # Tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        if old_text in paragraph.text:
+                            for run in paragraph.runs:
+                                if old_text in run.text:
+                                    run.text = run.text.replace(
+                                        old_text,
+                                        new_text
+                                    )
+
+    # --------------------------------
+    # MAP CMMS DATA TO AIRB TEMPLATE
+    # --------------------------------
+
+    replacements = {
+        "<IER_DATE>": cm_record.get(
+            "IER Date",
+            ""
+        ),
+
+        "<IER_REPORT_NO>": cm_record.get(
+            "IER Report No.",
+            ""
+        ),
+
+        "<IER_FROM>": cm_record.get(
+            "IER From",
+            ""
+        ),
+
+        "<IER_SUBJECT>": cm_record.get(
+            "IER Subject",
+            ""
+        ),
+
+        "<IER_LOCATION>": cm_record.get(
+            "IER Location",
+            ""
+        ),
+
+        "<IER_DESCRIPTION>": cm_record.get(
+            "IER Description",
+            ""
+        ),
+
+        "<IER_ACTION>": cm_record.get(
+            "IER Immediate Action",
+            ""
+        ),
+
+        "<IER_REQUESTED_BY>": cm_record.get(
+            "IER Requested By",
+            ""
+        ),
+
+        "<IER_DESIGNATION>": cm_record.get(
+            "IER Designation",
+            ""
+        ),
+
+        "<IER_FINALISED_BY>": cm_record.get(
+            "IER Finalised By",
+            ""
+        ),
+    }
+
+    for placeholder, value in replacements.items():
+        replace_text(
+            placeholder,
+            value
+        )
+
+    # --------------------------------
+    # SAVE GENERATED DOCUMENT TO MEMORY
+    # --------------------------------
+
+    output = BytesIO()
+
+    doc.save(output)
+
+    output.seek(0)
+
+    return output.getvalue()
 
 # -----------------------------
 # INDIVIDUAL USER LOGIN
@@ -3502,6 +3629,45 @@ if ier_cm_candidates:
     st.caption(
         f"IER Status: {current_ier_status}"
     )
+
+    # --------------------------------
+    # GENERATE FINALISED AIRB IER
+    # --------------------------------
+
+    if current_ier_status == "Finalised":
+
+        try:
+            ier_docx = generate_ier_docx(
+                ier_cm
+            )
+
+            safe_report_no = (
+                ier_cm.get(
+                    "IER Report No.",
+                    ier_cm_id
+                )
+                .replace("/", "-")
+                .replace("\\", "-")
+            )
+
+            st.download_button(
+                "Download Finalised IER (.docx)",
+                data=ier_docx,
+                file_name=(
+                    f"{safe_report_no}_"
+                    f"Incident_Emergency_Report.docx"
+                ),
+                mime=(
+                    "application/vnd.openxmlformats-"
+                    "officedocument.wordprocessingml.document"
+                ),
+                key=f"download_ier_{ier_cm_id}"
+            )
+
+        except Exception as e:
+            st.error(
+                f"Unable to generate IER document: {e}"
+            )
 
     with st.container(border=True):
 
