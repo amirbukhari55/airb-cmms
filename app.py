@@ -4426,6 +4426,9 @@ elif page == "Procurement":
     from procurement_extensions import render_pr_documents
     render_pr_documents(st, supabase, site_requests, current_user)
 
+    from procurement_extensions import render_linked_po_workflow
+    render_linked_po_workflow(st, supabase, site_requests, current_user)
+
     st.subheader("Maintenance Procurement Requests")
 
     if site_requests:
