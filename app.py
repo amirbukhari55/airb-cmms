@@ -3549,233 +3549,313 @@ elif page == "Corrective Maintenance":
 
     st.divider()
 
-# --------------------------------
-# INCIDENT / EMERGENCY REPORT (IER)
-# --------------------------------
-st.subheader("Incident / Emergency Report (IER)")
-
-ier_cm_candidates = [
-    cm for cm in st.session_state.corrective_maintenance
-    if can_access_site(cm.get("Site ID"))
-    and (
-        selected_site_id == "ALL"
-        or cm.get("Site ID") == selected_site_id
-    )
-    and cm.get("Status") not in ["Completed", "Closed"]
-]
-
-if ier_cm_candidates:
-
-    ier_cm_id = st.selectbox(
-        "Select CM for IER",
-        [cm["CM ID"] for cm in ier_cm_candidates],
-        key="ier_cm_selection"
-    )
-
-    ier_cm = next(
-        cm for cm in ier_cm_candidates
-        if cm["CM ID"] == ier_cm_id
-    )
-
-    current_ier_status = ier_cm.get(
-        "IER Status",
-        "Not Created"
-    )
-
-    st.caption(
-        f"IER Status: {current_ier_status}"
-    )
-
     # --------------------------------
-    # GENERATE FINALISED AIRB IER
+    # INCIDENT / EMERGENCY REPORT (IER)
     # --------------------------------
+    st.subheader("Incident / Emergency Report (IER)")
 
-    if current_ier_status == "Finalised":
+    ier_cm_candidates = [
+        cm for cm in st.session_state.corrective_maintenance
+        if can_access_site(cm.get("Site ID"))
+        and (
+            selected_site_id == "ALL"
+            or cm.get("Site ID") == selected_site_id
+        )
+        and cm.get("Status") not in ["Completed", "Closed"]
+    ]
 
-        try:
-            ier_docx = generate_ier_docx(
-                ier_cm
-            )
+    if ier_cm_candidates:
 
-            safe_report_no = (
-                ier_cm.get(
-                    "IER Report No.",
-                    ier_cm_id
+        ier_cm_id = st.selectbox(
+            "Select CM for IER",
+            [cm["CM ID"] for cm in ier_cm_candidates],
+            key="ier_cm_selection"
+        )
+
+        ier_cm = next(
+            cm for cm in ier_cm_candidates
+            if cm["CM ID"] == ier_cm_id
+        )
+
+        current_ier_status = ier_cm.get(
+            "IER Status",
+            "Not Created"
+        )
+
+        st.caption(
+            f"IER Status: {current_ier_status}"
+        )
+
+        # --------------------------------
+        # GENERATE FINALISED AIRB IER
+        # --------------------------------
+
+        if current_ier_status == "Finalised":
+
+            try:
+                ier_docx = generate_ier_docx(
+                    ier_cm
                 )
-                .replace("/", "-")
-                .replace("\\", "-")
-            )
 
-            st.download_button(
-                "Download Finalised IER (.docx)",
-                data=ier_docx,
-                file_name=(
-                    f"{safe_report_no}_"
-                    f"Incident_Emergency_Report.docx"
-                ),
-                mime=(
-                    "application/vnd.openxmlformats-"
-                    "officedocument.wordprocessingml.document"
-                ),
-                key=f"download_ier_{ier_cm_id}"
-            )
+                safe_report_no = (
+                    ier_cm.get(
+                        "IER Report No.",
+                        ier_cm_id
+                    )
+                    .replace("/", "-")
+                    .replace("\\", "-")
+                )
 
-        except Exception as e:
-            st.error(
-                f"Unable to generate IER document: {e}"
-            )
+                st.download_button(
+                    "Download Finalised IER (.docx)",
+                    data=ier_docx,
+                    file_name=(
+                        f"{safe_report_no}_"
+                        f"Incident_Emergency_Report.docx"
+                    ),
+                    mime=(
+                        "application/vnd.openxmlformats-"
+                        "officedocument.wordprocessingml.document"
+                    ),
+                    key=f"download_ier_{ier_cm_id}"
+                )
 
-    with st.container(border=True):
-
-        ier_report_no = st.text_input(
-            "IER Report No.",
-            value=ier_cm.get(
-                "IER Report No.",
-                f"IER-{ier_cm_id}"
-            ),
-            key=f"ier_report_no_{ier_cm_id}"
-        )
-
-        ier_date = st.date_input(
-            "Report Date",
-            value=pd.Timestamp.today().date(),
-            key=f"ier_date_{ier_cm_id}"
-        )
-
-        ier_from = st.text_input(
-            "From",
-            value=st.session_state.current_user.get(
-                "full_name",
-                ""
-            ),
-            key=f"ier_from_{ier_cm_id}"
-        )
-
-        ier_subject = st.text_input(
-            "Subject / Re",
-            value=ier_cm.get(
-                "Problem",
-                ""
-            ),
-            key=f"ier_subject_{ier_cm_id}"
-        )
-
-        ier_location = st.text_input(
-            "Location",
-            value=ier_cm.get(
-                "Site ID",
-                ""
-            ),
-            key=f"ier_location_{ier_cm_id}"
-        )
-
-        ier_description = st.text_area(
-            "Incident / Emergency Description",
-            value=ier_cm.get(
-                "IER Description",
-                ier_cm.get("Problem", "")
-            ),
-            key=f"ier_description_{ier_cm_id}"
-        )
-
-        ier_action = st.text_area(
-            "Immediate / Corrective Action",
-            value=ier_cm.get(
-                "Corrective Action",
-                ""
-            ),
-            key=f"ier_action_{ier_cm_id}"
-        )
-
-        ier_requested_by = st.text_input(
-            "Requested By",
-            value=st.session_state.current_user.get(
-                "full_name",
-                ""
-            ),
-            key=f"ier_requested_by_{ier_cm_id}"
-        )
-
-        ier_designation = st.text_input(
-            "Designation",
-            value=st.session_state.current_user.get(
-                "role",
-                ""
-            ),
-            key=f"ier_designation_{ier_cm_id}"
-        )
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            save_ier_draft = st.button(
-                "Save IER Draft",
-                key=f"save_ier_draft_{ier_cm_id}"
-            )
-        
-        with col2:
-            finalise_ier = st.button(
-                "Finalise IER",
-                type="primary",
-                key=f"finalise_ier_{ier_cm_id}",
-                disabled=not can_approve_maintenance()
-            )
-
-        if save_ier_draft:
-
-            if not can_edit_maintenance():
+            except Exception as e:
                 st.error(
-                    "You are not authorised to create or edit IER records."
+                    f"Unable to generate IER document: {e}"
+                )
+
+        with st.container(border=True):
+
+            ier_report_no = st.text_input(
+                "IER Report No.",
+                value=ier_cm.get(
+                    "IER Report No.",
+                    f"IER-{ier_cm_id}"
+                ),
+                key=f"ier_report_no_{ier_cm_id}"
+            )
+
+            ier_date = st.date_input(
+                "Report Date",
+                value=pd.Timestamp.today().date(),
+                key=f"ier_date_{ier_cm_id}"
+            )
+
+            ier_from = st.text_input(
+                "From",
+                value=st.session_state.current_user.get(
+                    "full_name",
+                    ""
+                ),
+                key=f"ier_from_{ier_cm_id}"
+            )
+
+            ier_subject = st.text_input(
+                "Subject / Re",
+                value=ier_cm.get(
+                    "Problem",
+                    ""
+                ),
+                key=f"ier_subject_{ier_cm_id}"
+            )
+
+            ier_location = st.text_input(
+                "Location",
+                value=ier_cm.get(
+                    "Site ID",
+                    ""
+                ),
+                key=f"ier_location_{ier_cm_id}"
+            )
+
+            ier_description = st.text_area(
+                "Incident / Emergency Description",
+                value=ier_cm.get(
+                    "IER Description",
+                    ier_cm.get("Problem", "")
+                ),
+                key=f"ier_description_{ier_cm_id}"
+            )
+
+            ier_action = st.text_area(
+                "Immediate / Corrective Action",
+                value=ier_cm.get(
+                    "Corrective Action",
+                    ""
+                ),
+                key=f"ier_action_{ier_cm_id}"
+            )
+
+            ier_requested_by = st.text_input(
+                "Requested By",
+                value=st.session_state.current_user.get(
+                    "full_name",
+                    ""
+                ),
+                key=f"ier_requested_by_{ier_cm_id}"
+            )
+
+            ier_designation = st.text_input(
+                "Designation",
+                value=st.session_state.current_user.get(
+                    "role",
+                    ""
+                ),
+                key=f"ier_designation_{ier_cm_id}"
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                save_ier_draft = st.button(
+                    "Save IER Draft",
+                    key=f"save_ier_draft_{ier_cm_id}"
+                )
+        
+            with col2:
+                finalise_ier = st.button(
+                    "Finalise IER",
+                    type="primary",
+                    key=f"finalise_ier_{ier_cm_id}",
+                    disabled=not can_approve_maintenance()
+                )
+
+            if save_ier_draft:
+
+                if not can_edit_maintenance():
+                    st.error(
+                        "You are not authorised to create or edit IER records."
+                    )
+                    st.stop()
+
+                if not ier_report_no.strip():
+                    st.error("IER Report No. is required.")
+                    st.stop()
+
+                if not ier_description.strip():
+                    st.error(
+                        "Incident / Emergency Description is required."
+                    )
+                    st.stop()
+
+                updated_cm = ier_cm.copy()
+
+                updated_cm["IER Required"] = True
+                updated_cm["IER Status"] = "Draft"
+                updated_cm["IER Report No."] = (
+                    ier_report_no.strip()
+                )
+                updated_cm["IER Date"] = (
+                    ier_date.strftime("%Y-%m-%d")
+                )
+                updated_cm["IER From"] = (
+                    ier_from.strip()
+                )
+                updated_cm["IER Subject"] = (
+                    ier_subject.strip()
+                )
+                updated_cm["IER Location"] = (
+                    ier_location.strip()
+                )
+                updated_cm["IER Description"] = (
+                    ier_description.strip()
+                )
+                updated_cm["IER Immediate Action"] = (
+                    ier_action.strip()
+                )
+                updated_cm["IER Requested By"] = (
+                    ier_requested_by.strip()
+                )
+                updated_cm["IER Designation"] = (
+                    ier_designation.strip()
+                )
+
+                try:
+                    response = (
+                        supabase.table(
+                            "corrective_maintenance"
+                        )
+                        .update({
+                            "cm_data": updated_cm
+                        })
+                        .eq(
+                            "cm_id",
+                            ier_cm_id
+                        )
+                        .eq(
+                            "site_id",
+                            ier_cm["Site ID"]
+                        )
+                        .execute()
+                    )
+
+                    if not response.data:
+                        st.error(
+                            "CM record was not found in Supabase."
+                        )
+                        st.stop()
+
+                    ier_cm.update(updated_cm)
+
+                except Exception as e:
+                    st.error(
+                        f"Unable to save IER draft: {e}"
+                    )
+                    st.stop()
+
+                st.session_state.ier_success_message = (
+                    f"{ier_report_no} saved as IER Draft."
+                )
+
+                st.rerun()
+        if finalise_ier:
+    
+            if not can_approve_maintenance():
+                st.error(
+                    "Only Engineers and Administrators "
+                    "can finalise an IER."
                 )
                 st.stop()
-
+    
             if not ier_report_no.strip():
                 st.error("IER Report No. is required.")
                 st.stop()
-
+    
             if not ier_description.strip():
                 st.error(
                     "Incident / Emergency Description is required."
                 )
                 st.stop()
-
+    
             updated_cm = ier_cm.copy()
-
+    
             updated_cm["IER Required"] = True
-            updated_cm["IER Status"] = "Draft"
-            updated_cm["IER Report No."] = (
-                ier_report_no.strip()
+            updated_cm["IER Status"] = "Finalised"
+            updated_cm["IER Report No."] = ier_report_no.strip()
+            updated_cm["IER Date"] = ier_date.strftime("%Y-%m-%d")
+            updated_cm["IER From"] = ier_from.strip()
+            updated_cm["IER Subject"] = ier_subject.strip()
+            updated_cm["IER Location"] = ier_location.strip()
+            updated_cm["IER Description"] = ier_description.strip()
+            updated_cm["IER Immediate Action"] = ier_action.strip()
+            updated_cm["IER Requested By"] = ier_requested_by.strip()
+            updated_cm["IER Designation"] = ier_designation.strip()
+    
+            updated_cm["IER Finalised By"] = (
+                st.session_state.current_user.get(
+                    "full_name",
+                    ""
+                )
             )
-            updated_cm["IER Date"] = (
-                ier_date.strftime("%Y-%m-%d")
+    
+            updated_cm["IER Finalised Date"] = (
+                pd.Timestamp.now().isoformat()
             )
-            updated_cm["IER From"] = (
-                ier_from.strip()
-            )
-            updated_cm["IER Subject"] = (
-                ier_subject.strip()
-            )
-            updated_cm["IER Location"] = (
-                ier_location.strip()
-            )
-            updated_cm["IER Description"] = (
-                ier_description.strip()
-            )
-            updated_cm["IER Immediate Action"] = (
-                ier_action.strip()
-            )
-            updated_cm["IER Requested By"] = (
-                ier_requested_by.strip()
-            )
-            updated_cm["IER Designation"] = (
-                ier_designation.strip()
-            )
-
+    
             try:
                 response = (
-                    supabase.table(
-                        "corrective_maintenance"
-                    )
+                    supabase.table("corrective_maintenance")
                     .update({
                         "cm_data": updated_cm
                     })
@@ -3789,529 +3869,449 @@ if ier_cm_candidates:
                     )
                     .execute()
                 )
-
+    
                 if not response.data:
                     st.error(
                         "CM record was not found in Supabase."
                     )
                     st.stop()
-
+    
                 ier_cm.update(updated_cm)
-
+    
             except Exception as e:
                 st.error(
-                    f"Unable to save IER draft: {e}"
+                    f"Unable to finalise IER: {e}"
                 )
                 st.stop()
-
+    
             st.session_state.ier_success_message = (
-                f"{ier_report_no} saved as IER Draft."
+                f"{ier_report_no} finalised successfully."
             )
-
+    
             st.rerun()
-    if finalise_ier:
-    
-        if not can_approve_maintenance():
-            st.error(
-                "Only Engineers and Administrators "
-                "can finalise an IER."
-            )
-            st.stop()
-    
-        if not ier_report_no.strip():
-            st.error("IER Report No. is required.")
-            st.stop()
-    
-        if not ier_description.strip():
-            st.error(
-                "Incident / Emergency Description is required."
-            )
-            st.stop()
-    
-        updated_cm = ier_cm.copy()
-    
-        updated_cm["IER Required"] = True
-        updated_cm["IER Status"] = "Finalised"
-        updated_cm["IER Report No."] = ier_report_no.strip()
-        updated_cm["IER Date"] = ier_date.strftime("%Y-%m-%d")
-        updated_cm["IER From"] = ier_from.strip()
-        updated_cm["IER Subject"] = ier_subject.strip()
-        updated_cm["IER Location"] = ier_location.strip()
-        updated_cm["IER Description"] = ier_description.strip()
-        updated_cm["IER Immediate Action"] = ier_action.strip()
-        updated_cm["IER Requested By"] = ier_requested_by.strip()
-        updated_cm["IER Designation"] = ier_designation.strip()
-    
-        updated_cm["IER Finalised By"] = (
-            st.session_state.current_user.get(
-                "full_name",
-                ""
-            )
-        )
-    
-        updated_cm["IER Finalised Date"] = (
-            pd.Timestamp.now().isoformat()
-        )
-    
-        try:
-            response = (
-                supabase.table("corrective_maintenance")
-                .update({
-                    "cm_data": updated_cm
-                })
-                .eq(
-                    "cm_id",
-                    ier_cm_id
-                )
-                .eq(
-                    "site_id",
-                    ier_cm["Site ID"]
-                )
-                .execute()
-            )
-    
-            if not response.data:
-                st.error(
-                    "CM record was not found in Supabase."
-                )
-                st.stop()
-    
-            ier_cm.update(updated_cm)
-    
-        except Exception as e:
-            st.error(
-                f"Unable to finalise IER: {e}"
-            )
-            st.stop()
-    
-        st.session_state.ier_success_message = (
-            f"{ier_report_no} finalised successfully."
-        )
-    
-        st.rerun()
-else:
-    st.info(
-        "No active Corrective Maintenance records "
-        "available for IER creation."
-    )
-
-if "ier_success_message" in st.session_state:
-    st.success(
-        st.session_state.pop(
-            "ier_success_message"
-        )
-    )
-
-st.divider()
-    
-# --------------------------------
-# ENGINEER REVIEW & APPROVAL
-# --------------------------------
-st.subheader("Engineer Review & Approval")
-
-pending_cm = [
-    cm for cm in st.session_state.corrective_maintenance
-    if can_access_site(cm.get("Site ID"))
-    and (
-        selected_site_id == "ALL"
-        or cm.get("Site ID") == selected_site_id
-    )
-    and cm.get("Status") == "Pending Engineer Review"
-]
-
-if pending_cm:
-
-    review_cm_id = st.selectbox(
-        "Select CM for Engineer Review",
-        [cm["CM ID"] for cm in pending_cm],
-        key="engineer_review_cm"
-    )
-
-    review_cm = next(
-        cm for cm in pending_cm
-        if cm["CM ID"] == review_cm_id
-    )
-
-    with st.container(border=True):
-
-        st.write(f"**CM ID:** {review_cm['CM ID']}")
-        st.write(f"**Related WO:** {review_cm['WO ID']}")
-        st.write(f"**Asset:** {review_cm['Asset']}")
-        st.write(f"**Problem:** {review_cm['Problem']}")
-        st.write(
-            f"**Corrective Action:** "
-            f"{review_cm.get('Corrective Action', '')}"
+    else:
+        st.info(
+            "No active Corrective Maintenance records "
+            "available for IER creation."
         )
 
-        engineer_remarks = st.text_area(
-            "Engineer Review Remarks",
-            key=f"cm_engineer_remarks_{review_cm_id}"
+    if "ier_success_message" in st.session_state:
+        st.success(
+            st.session_state.pop(
+                "ier_success_message"
+            )
         )
 
-        col1, col2 = st.columns(2)
+    st.divider()
+    
+    # --------------------------------
+    # ENGINEER REVIEW & APPROVAL
+    # --------------------------------
+    st.subheader("Engineer Review & Approval")
 
-        with col1:
-            approve_cm = st.button(
-                "Approve & Complete CM",
-                type="primary",
-                key=f"approve_cm_{review_cm_id}",
-                disabled=not can_approve_maintenance()
-            )
-            
-        with col2:
-            return_cm = st.button(
-                "Return for Rectification",
-                key=f"return_cm_{review_cm_id}",
-                disabled=not can_approve_maintenance()
-            )
-
-        if approve_cm or return_cm:
-
-            if not can_approve_maintenance():
-                st.error(
-                    "You are not authorised to approve or return "
-                    "Corrective Maintenance records."
-                )
-                st.stop()
-            
-            if not engineer_remarks.strip():
-                st.error("Engineer review remarks are required.")
-                st.stop()
-
-            updated_cm = review_cm.copy()
-
-            if approve_cm:
-                updated_cm["Status"] = "Completed"
-                updated_cm["Engineer Decision"] = "Approved"
-            else:
-                updated_cm["Status"] = "In Progress"
-                updated_cm["Engineer Decision"] = "Returned for Rectification"
-
-            updated_cm["Engineer Review Remarks"] = (
-                engineer_remarks.strip()
-            )
-
-            updated_cm["Review Date"] = (
-                pd.Timestamp.now().isoformat()
-            )
-
-            try:
-                response = (
-                    supabase.table("corrective_maintenance")
-                    .update({"cm_data": updated_cm})
-                    .eq("cm_id", review_cm_id)
-                    .eq("site_id", review_cm["Site ID"])
-                    .execute()
-                )
-
-                if not response.data:
-                    st.error("CM record was not found in Supabase.")
-                    st.stop()
-
-                review_cm.update(updated_cm)
-
-            except Exception as e:
-                st.error(
-                    f"Unable to save engineer review: {e}"
-                )
-                st.stop()
-
-            st.session_state.cm_review_success = (
-                f"{review_cm_id}: "
-                f"{updated_cm['Engineer Decision']}."
-            )
-
-            st.rerun()
-
-else:
-    st.info("No CM records pending engineer review.")
-
-if "cm_review_success" in st.session_state:
-    st.success(
-        st.session_state.pop("cm_review_success")
-    )
-
-st.divider()
-
-
-
-# --------------------------------
-# CORRECTIVE MAINTENANCE FORM
-# --------------------------------
-st.subheader("Record Corrective Maintenance")
-
-if selected_site_id == "ALL":
-    st.info(
-        "Select an operational site from the sidebar "
-        "before recording corrective maintenance."
-    )
-
-else:
-    wo_options = [
-        wo["WO ID"]
-        for wo in site_work_orders
-        if wo.get("Status") not in ["Completed", "Closed"]
+    pending_cm = [
+        cm for cm in st.session_state.corrective_maintenance
+        if can_access_site(cm.get("Site ID"))
+        and (
+            selected_site_id == "ALL"
+            or cm.get("Site ID") == selected_site_id
+        )
+        and cm.get("Status") == "Pending Engineer Review"
     ]
 
-    if not wo_options:
-        st.warning(
-            "No active Work Orders are available under this site. "
-            "Create a Work Order first."
+    if pending_cm:
+
+        review_cm_id = st.selectbox(
+            "Select CM for Engineer Review",
+            [cm["CM ID"] for cm in pending_cm],
+            key="engineer_review_cm"
         )
 
-    else:
+        review_cm = next(
+            cm for cm in pending_cm
+            if cm["CM ID"] == review_cm_id
+        )
+
         with st.container(border=True):
+
+            st.write(f"**CM ID:** {review_cm['CM ID']}")
+            st.write(f"**Related WO:** {review_cm['WO ID']}")
+            st.write(f"**Asset:** {review_cm['Asset']}")
+            st.write(f"**Problem:** {review_cm['Problem']}")
+            st.write(
+                f"**Corrective Action:** "
+                f"{review_cm.get('Corrective Action', '')}"
+            )
+
+            engineer_remarks = st.text_area(
+                "Engineer Review Remarks",
+                key=f"cm_engineer_remarks_{review_cm_id}"
+            )
+
             col1, col2 = st.columns(2)
 
             with col1:
-                cm_id = st.text_input("CM ID")
-
-                # Receive WO information from Work Orders page
-                cm_prefill = st.session_state.get("cm_from_wo", {})
-                prefill_wo_id = cm_prefill.get("WO ID")
-
-                default_index = (
-                    wo_options.index(prefill_wo_id)
-                    if prefill_wo_id in wo_options
-                    else 0
+                approve_cm = st.button(
+                    "Approve & Complete CM",
+                    type="primary",
+                    key=f"approve_cm_{review_cm_id}",
+                    disabled=not can_approve_maintenance()
                 )
-
-                wo_id = st.selectbox(
-                    "Related Work Order",
-                    wo_options,
-                    index=default_index,
-                    key="cm_related_wo"
-                )
-
-                selected_wo = next(
-                    wo for wo in site_work_orders
-                    if wo["WO ID"] == wo_id
-                )
-
-                asset = selected_wo["Asset"]
-
-                st.text_input(
-                    "Asset",
-                    value=asset,
-                    disabled=True
-                )
-
-                priority = st.selectbox(
-                    "Priority",
-                    ["Low", "Normal", "High", "Urgent"],
-                    index=1
-                )
-
+            
             with col2:
-                failure_type = st.selectbox(
-                    "Failure Type",
-                    [
-                        "Mechanical",
-                        "Electrical",
-                        "Instrumentation",
-                        "Process",
-                        "Control / PLC",
-                        "Other"
-                    ]
+                return_cm = st.button(
+                    "Return for Rectification",
+                    key=f"return_cm_{review_cm_id}",
+                    disabled=not can_approve_maintenance()
                 )
 
-                downtime = st.number_input(
-                    "Downtime (Hours)",
-                    min_value=0.0,
-                    step=0.5
-                )
+            if approve_cm or return_cm:
 
-                procurement_required = st.selectbox(
-                    "Procurement Required?",
-                    ["No", "Yes"]
-                )
-
-                status = st.selectbox(
-                    "Status",
-                    [
-                        "Open",
-                        "In Progress",
-                        "Pending Engineer Review",
-                        "Completed",
-                        "Closed"
-                    ]
-                )
-
-            failed_inspections = (
-                cm_prefill.get("Failed Inspections", [])
-                if cm_prefill.get("WO ID") == wo_id
-                else []
-            )
-                
-            prefilled_problem = (
-                "Failed equipment inspection:\n"
-                + "\n".join(f"- {item}" for item in failed_inspections)
-                if failed_inspections
-                else ""
-            )
-                
-            problem = st.text_area(
-                "Problem / Failure Description",
-                value=prefilled_problem,
-                placeholder="Describe the problem or failure..."
-            )
-
-            action = st.text_area(
-                "Corrective Action",
-                placeholder="Describe troubleshooting, repair or corrective action..."
-            )
-
-            if procurement_required == "Yes":
-                st.warning(
-                    "Procurement required. A PR / IER request will be initiated."
-                )
-
-                item_required = st.text_input(
-                    "Material / Service Required"
-                )
-
-                justification = st.text_area(
-                    "Procurement Justification"
-                )
-
-            submitted = st.button(
-                "Submit Corrective Maintenance",
-                type="primary"
-            )
-
-            if submitted:
-                clean_cm_id = cm_id.strip()
-
-                if not clean_cm_id or not problem.strip():
+                if not can_approve_maintenance():
                     st.error(
-                        "CM ID and Problem / Failure Description are required."
+                        "You are not authorised to approve or return "
+                        "Corrective Maintenance records."
                     )
+                    st.stop()
+            
+                if not engineer_remarks.strip():
+                    st.error("Engineer review remarks are required.")
+                    st.stop()
 
-                elif any(
-                    cm.get("CM ID") == clean_cm_id
-                    for cm in st.session_state.corrective_maintenance
-                ):
-                    st.error(
-                        f"Corrective Maintenance {clean_cm_id} already exists."
-                    )
+                updated_cm = review_cm.copy()
 
+                if approve_cm:
+                    updated_cm["Status"] = "Completed"
+                    updated_cm["Engineer Decision"] = "Approved"
                 else:
-                    new_cm = {
-                        "CM ID": clean_cm_id,
-                        "Site ID": selected_site_id,
-                        "WO ID": wo_id,
-                        "Asset": asset,
-                        "Problem": problem.strip(),
-                        "Failed Inspections": failed_inspections,
-                        "Corrective Action": action.strip(),
-                        "Failure Type": failure_type,
-                        "Priority": priority,
-                        "Downtime": downtime,
-                        "Procurement": (
-                            "Required"
-                            if procurement_required == "Yes"
-                            else "Not Required"
-                        ),
-                        "Status": status
-                    }
+                    updated_cm["Status"] = "In Progress"
+                    updated_cm["Engineer Decision"] = "Returned for Rectification"
 
-                    # Prepare procurement request, if required.
-                    new_procurement = None
+                updated_cm["Engineer Review Remarks"] = (
+                    engineer_remarks.strip()
+                )
 
-                    if procurement_required == "Yes":
-                        request_id = f"MPR-{clean_cm_id}"
+                updated_cm["Review Date"] = (
+                    pd.Timestamp.now().isoformat()
+                )
 
-                        new_procurement = {
-                            "Request ID": request_id,
-                            "Site ID": selected_site_id,
-                            "CM ID": clean_cm_id,
-                            "WO ID": wo_id,
-                            "Asset": asset,
-                            "Requirement": item_required.strip(),
-                            "Justification": justification.strip(),
-                            "Priority": priority,
-                            "Document": "Pending",
-                            "Status": "New"
-                        }
+                try:
+                    response = (
+                        supabase.table("corrective_maintenance")
+                        .update({"cm_data": updated_cm})
+                        .eq("cm_id", review_cm_id)
+                        .eq("site_id", review_cm["Site ID"])
+                        .execute()
+                    )
 
-                    # Save to Supabase before updating the screen.
-                    try:
-                        supabase.table("corrective_maintenance").insert({
-                            "cm_id": clean_cm_id,
-                            "site_id": selected_site_id,
-                            "cm_data": new_cm
-                        }).execute()
-
-                    except Exception as e:
-                        st.error(
-                            f"Unable to save corrective maintenance "
-                            f"to Supabase: {e}"
-                        )
+                    if not response.data:
+                        st.error("CM record was not found in Supabase.")
                         st.stop()
 
-                    if new_procurement is not None:
+                    review_cm.update(updated_cm)
+
+                except Exception as e:
+                    st.error(
+                        f"Unable to save engineer review: {e}"
+                    )
+                    st.stop()
+
+                st.session_state.cm_review_success = (
+                    f"{review_cm_id}: "
+                    f"{updated_cm['Engineer Decision']}."
+                )
+
+                st.rerun()
+
+    else:
+        st.info("No CM records pending engineer review.")
+
+    if "cm_review_success" in st.session_state:
+        st.success(
+            st.session_state.pop("cm_review_success")
+        )
+
+    st.divider()
+
+
+
+    # --------------------------------
+    # CORRECTIVE MAINTENANCE FORM
+    # --------------------------------
+    st.subheader("Record Corrective Maintenance")
+
+    if selected_site_id == "ALL":
+        st.info(
+            "Select an operational site from the sidebar "
+            "before recording corrective maintenance."
+        )
+
+    else:
+        wo_options = [
+            wo["WO ID"]
+            for wo in site_work_orders
+            if wo.get("Status") not in ["Completed", "Closed"]
+        ]
+
+        if not wo_options:
+            st.warning(
+                "No active Work Orders are available under this site. "
+                "Create a Work Order first."
+            )
+
+        else:
+            with st.container(border=True):
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    cm_id = st.text_input("CM ID")
+
+                    # Receive WO information from Work Orders page
+                    cm_prefill = st.session_state.get("cm_from_wo", {})
+                    prefill_wo_id = cm_prefill.get("WO ID")
+
+                    default_index = (
+                        wo_options.index(prefill_wo_id)
+                        if prefill_wo_id in wo_options
+                        else 0
+                    )
+
+                    wo_id = st.selectbox(
+                        "Related Work Order",
+                        wo_options,
+                        index=default_index,
+                        key="cm_related_wo"
+                    )
+
+                    selected_wo = next(
+                        wo for wo in site_work_orders
+                        if wo["WO ID"] == wo_id
+                    )
+
+                    asset = selected_wo["Asset"]
+
+                    st.text_input(
+                        "Asset",
+                        value=asset,
+                        disabled=True
+                    )
+
+                    priority = st.selectbox(
+                        "Priority",
+                        ["Low", "Normal", "High", "Urgent"],
+                        index=1
+                    )
+
+                with col2:
+                    failure_type = st.selectbox(
+                        "Failure Type",
+                        [
+                            "Mechanical",
+                            "Electrical",
+                            "Instrumentation",
+                            "Process",
+                            "Control / PLC",
+                            "Other"
+                        ]
+                    )
+
+                    downtime = st.number_input(
+                        "Downtime (Hours)",
+                        min_value=0.0,
+                        step=0.5
+                    )
+
+                    procurement_required = st.selectbox(
+                        "Procurement Required?",
+                        ["No", "Yes"]
+                    )
+
+                    status = st.selectbox(
+                        "Status",
+                        [
+                            "Open",
+                            "In Progress",
+                            "Pending Engineer Review",
+                            "Completed",
+                            "Closed"
+                        ]
+                    )
+
+                failed_inspections = (
+                    cm_prefill.get("Failed Inspections", [])
+                    if cm_prefill.get("WO ID") == wo_id
+                    else []
+                )
+                
+                prefilled_problem = (
+                    "Failed equipment inspection:\n"
+                    + "\n".join(f"- {item}" for item in failed_inspections)
+                    if failed_inspections
+                    else ""
+                )
+                
+                problem = st.text_area(
+                    "Problem / Failure Description",
+                    value=prefilled_problem,
+                    placeholder="Describe the problem or failure..."
+                )
+
+                action = st.text_area(
+                    "Corrective Action",
+                    placeholder="Describe troubleshooting, repair or corrective action..."
+                )
+
+                if procurement_required == "Yes":
+                    st.warning(
+                        "Procurement required. A PR / IER request will be initiated."
+                    )
+
+                    item_required = st.text_input(
+                        "Material / Service Required"
+                    )
+
+                    justification = st.text_area(
+                        "Procurement Justification"
+                    )
+
+                submitted = st.button(
+                    "Submit Corrective Maintenance",
+                    type="primary"
+                )
+
+                if submitted:
+                    clean_cm_id = cm_id.strip()
+
+                    if not clean_cm_id or not problem.strip():
+                        st.error(
+                            "CM ID and Problem / Failure Description are required."
+                        )
+
+                    elif any(
+                        cm.get("CM ID") == clean_cm_id
+                        for cm in st.session_state.corrective_maintenance
+                    ):
+                        st.error(
+                            f"Corrective Maintenance {clean_cm_id} already exists."
+                        )
+
+                    else:
+                        new_cm = {
+                            "CM ID": clean_cm_id,
+                            "Site ID": selected_site_id,
+                            "WO ID": wo_id,
+                            "Asset": asset,
+                            "Problem": problem.strip(),
+                            "Failed Inspections": failed_inspections,
+                            "Corrective Action": action.strip(),
+                            "Failure Type": failure_type,
+                            "Priority": priority,
+                            "Downtime": downtime,
+                            "Procurement": (
+                                "Required"
+                                if procurement_required == "Yes"
+                                else "Not Required"
+                            ),
+                            "Status": status
+                        }
+
+                        # Prepare procurement request, if required.
+                        new_procurement = None
+
+                        if procurement_required == "Yes":
+                            request_id = f"MPR-{clean_cm_id}"
+
+                            new_procurement = {
+                                "Request ID": request_id,
+                                "Site ID": selected_site_id,
+                                "CM ID": clean_cm_id,
+                                "WO ID": wo_id,
+                                "Asset": asset,
+                                "Requirement": item_required.strip(),
+                                "Justification": justification.strip(),
+                                "Priority": priority,
+                                "Document": "Pending",
+                                "Status": "New"
+                            }
+
+                        # Save to Supabase before updating the screen.
                         try:
-                            supabase.table("procurement_requests").insert({
-                                "request_id": request_id,
+                            supabase.table("corrective_maintenance").insert({
+                                "cm_id": clean_cm_id,
                                 "site_id": selected_site_id,
-                                "request_data": new_procurement
+                                "cm_data": new_cm
                             }).execute()
 
                         except Exception as e:
-                            # Roll back the newly created CM if its
-                            # linked procurement request cannot be saved.
-                            try:
-                                rollback = (
-                                    supabase.table("corrective_maintenance")
-                                    .delete()
-                                    .eq("cm_id", clean_cm_id)
-                                    .eq("site_id", selected_site_id)
-                                    .execute()
-                                )
-
-                                if not rollback.data:
-                                    raise RuntimeError(
-                                        "CM rollback could not be confirmed."
-                                    )
-
-                                st.error(
-                                    "The procurement request could not be saved. "
-                                    "The new CM was rolled back. "
-                                    "No incomplete CM/procurement pair was retained. "
-                                    f"Original error: {e}"
-                                )
-
-                            except Exception as rollback_error:
-                                st.error(
-                                    f"CM {clean_cm_id} was saved, but its "
-                                    "procurement request failed and rollback "
-                                    "could not be confirmed. Do not resubmit "
-                                    "the same CM ID until the Supabase records "
-                                    "are checked. "
-                                    f"Save error: {e}. "
-                                    f"Rollback error: {rollback_error}"
-                                )
-
+                            st.error(
+                                f"Unable to save corrective maintenance "
+                                f"to Supabase: {e}"
+                            )
                             st.stop()
 
-                    # Update current session after successful saves.
-                    st.session_state.corrective_maintenance.append(new_cm)
+                        if new_procurement is not None:
+                            try:
+                                supabase.table("procurement_requests").insert({
+                                    "request_id": request_id,
+                                    "site_id": selected_site_id,
+                                    "request_data": new_procurement
+                                }).execute()
 
-                    if new_procurement is not None:
-                        st.session_state.procurement_requests.append(
-                            new_procurement
+                            except Exception as e:
+                                # Roll back the newly created CM if its
+                                # linked procurement request cannot be saved.
+                                try:
+                                    rollback = (
+                                        supabase.table("corrective_maintenance")
+                                        .delete()
+                                        .eq("cm_id", clean_cm_id)
+                                        .eq("site_id", selected_site_id)
+                                        .execute()
+                                    )
+
+                                    if not rollback.data:
+                                        raise RuntimeError(
+                                            "CM rollback could not be confirmed."
+                                        )
+
+                                    st.error(
+                                        "The procurement request could not be saved. "
+                                        "The new CM was rolled back. "
+                                        "No incomplete CM/procurement pair was retained. "
+                                        f"Original error: {e}"
+                                    )
+
+                                except Exception as rollback_error:
+                                    st.error(
+                                        f"CM {clean_cm_id} was saved, but its "
+                                        "procurement request failed and rollback "
+                                        "could not be confirmed. Do not resubmit "
+                                        "the same CM ID until the Supabase records "
+                                        "are checked. "
+                                        f"Save error: {e}. "
+                                        f"Rollback error: {rollback_error}"
+                                    )
+
+                                st.stop()
+
+                        # Update current session after successful saves.
+                        st.session_state.corrective_maintenance.append(new_cm)
+
+                        if new_procurement is not None:
+                            st.session_state.procurement_requests.append(
+                                new_procurement
+                            )
+
+                        st.session_state.cm_success_message = (
+                            f"Corrective Maintenance {clean_cm_id} "
+                            f"submitted successfully."
                         )
 
-                    st.session_state.cm_success_message = (
-                        f"Corrective Maintenance {clean_cm_id} "
-                        f"submitted successfully."
-                    )
+                        st.session_state.pop("cm_from_wo", None)
+                        st.rerun()
 
-                    st.session_state.pop("cm_from_wo", None)
-                    st.rerun()
-
-if "cm_success_message" in st.session_state:
-    st.success(st.session_state.pop("cm_success_message"))
+    if "cm_success_message" in st.session_state:
+        st.success(st.session_state.pop("cm_success_message"))
 
 elif page == "Procurement":
     st.title("Maintenance Procurement")
