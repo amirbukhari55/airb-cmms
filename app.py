@@ -14,51 +14,44 @@ IER_TEMPLATE_PATH = (
 
 
 def generate_ier_docx(cm_record):
-    """Fill the actual AUT-OP-F01 form tables from saved CMMS records."""
+    """Populate AUT-OP-F01 using the actual merged-cell table layout."""
     if not IER_TEMPLATE_PATH.is_file():
-        raise FileNotFoundError(
-            f"AUT template missing: {IER_TEMPLATE_PATH}. "
-            "Upload the supplied templates folder to GitHub."
-        )
-
+        raise FileNotFoundError(f"AUT template missing: {IER_TEMPLATE_PATH}")
     doc = Document(IER_TEMPLATE_PATH)
-    if len(doc.tables) < 2 or len(doc.tables[0].rows) < 2 or len(doc.tables[1].rows) < 6:
-        raise ValueError("Unexpected AUT-OP-F01 template layout.")
+    if len(doc.tables) < 2 or len(doc.tables[1].rows) < 7:
+        raise ValueError("Unexpected AUT-OP-F01 template layout")
 
     def value(*keys):
         for key in keys:
-            item = cm_record.get(key)
-            if item is not None and str(item).strip():
-                return str(item).strip()
+            v = cm_record.get(key)
+            if v is not None and str(v).strip():
+                return str(v).strip()
         return ""
 
     asset_tag = value("Asset ID", "Asset")
-    asset = next(
-        (a for a in st.session_state.get("assets", [])
-         if str(a.get("Asset ID", "")).strip() == asset_tag
-         and str(a.get("Site ID", "")).strip() == value("Site ID")),
-        {}
-    )
+    asset = next((a for a in st.session_state.get("assets", [])
+                  if str(a.get("Asset ID", "")).strip() == asset_tag
+                  and str(a.get("Site ID", "")).strip() == value("Site ID")), {})
 
     def asset_value(*keys):
         for key in keys:
-            item = asset.get(key)
-            if item is not None and str(item).strip():
-                return str(item).strip()
+            v = asset.get(key)
+            if v is not None and str(v).strip():
+                return str(v).strip()
         return ""
 
-    report_date = value("IER Date")
-    report_no = value("IER Report No.", "CM ID")
-    form_header = doc.tables[0]
-    form_body = doc.tables[1]
-    form_header.cell(0, 1).text = report_date
-    form_header.cell(1, 1).text = report_no
-    form_body.cell(0, 1).text = value("IER From", "IER Requested By")
-    form_body.cell(1, 1).text = value("IER Subject", "Problem")
-    form_body.cell(2, 1).text = value("IER Location", "Site ID")
+    from docx.table import _Cell
 
-    # AUT's narrative area is a blank merged table row, not a placeholder.
-    # Preserve the surrounding form and populate that area explicitly.
+    header, body = doc.tables[:2]
+    def physical_cell(row_index, cell_index):
+        return _Cell(body.rows[row_index]._tr.tc_lst[cell_index], body)
+    header.cell(0, 1).text = value("IER Date")
+    header.cell(1, 1).text = value("IER Report No.", "CM ID")
+    # The first three rows each have a label cell and one horizontally merged value cell.
+    physical_cell(0, 1).text = value("IER From", "IER Requested By")
+    physical_cell(1, 1).text = value("IER Subject", "Problem")
+    physical_cell(2, 1).text = value("IER Location", "Site ID")
+
     details = [
         ("Asset ID", asset_tag),
         ("Asset Name", asset_value("Asset Name")),
@@ -68,35 +61,23 @@ def generate_ier_docx(cm_record):
         ("Incident / Emergency Description", value("IER Description", "Problem")),
         ("Immediate / Corrective Action", value("IER Immediate Action", "Corrective Action")),
     ]
-    narrative = form_body.cell(3, 0)
-    narrative.text = "\n".join(f"{label}: {content}" for label, content in details if content)
+    narrative = physical_cell(3, 0)
+    narrative.text = "\n".join(f"{label}: {item}" for label, item in details if item)
 
+    # Row 4 is a pair of merged cells: requester on left, verifier on right.
+    # Replace text in these cells only, preserving the approval table and director row.
     requester = value("IER Requested By")
     designation = value("IER Designation")
-    requested_date = report_date
-    requested_cell = form_body.cell(4, 0)
-    requested_cell.text = (
+    physical_cell(4, 0).text = (
         "Requested by:\n\n"
-        f"Name: {requester}\n"
-        f"Designation: {designation}\n"
-        f"Date: {requested_date}"
+        f"Name: {requester}\nDesignation: {designation}\nDate: {value('IER Date')}"
     )
-
-    # Only use real approval metadata. Do not imply that finalising an
-    # IER is equivalent to HOO verification or Director approval.
     verifier = value("IER Verified By", "Verified By", "Engineer Reviewed By")
-    verification_date = value("IER Verified Date", "Verification Date")
-    verification_status = value("IER Verification Status")
-    verification_cell = form_body.cell(4, 2)
-    verification_cell.text = (
+    verified_date = value("IER Verified Date", "Verification Date")
+    physical_cell(4, 1).text = (
         "Verified by:\n\n"
-        f"Name: {verifier}\n"
-        "Designation: HOO\n"
-        f"Date: {verification_date}"
-        + (f"\nStatus: {verification_status}" if verification_status else "")
+        f"Name: {verifier}\nDesignation: HOO\nDate: {verified_date}"
     )
-
-    # Retain the existing Director section of the AUT form unchanged.
     output = BytesIO()
     doc.save(output)
     return output.getvalue()
@@ -311,7 +292,7 @@ def can_manage_procurement():
 
     return role in [
         "Administrator",
-        "Engineer"
+        "Procurement"
     ]
 
 
@@ -616,7 +597,7 @@ site_options = {}
 
 # Administrator, Engineer and Management:
 # Can view all operational sites.
-if user_role in ["Administrator", "Engineer", "Management"]:
+if user_role in ["Administrator", "Engineer", "Management", "Procurement", "Business Development"]:
 
     site_options["ALL"] = "All Sites (Management View)"
 
@@ -707,6 +688,7 @@ role_pages = {
         "Work Orders",
         "Corrective Maintenance",
         "Procurement",
+        "Price Library",
         "Maintenance History"
     ],
 
@@ -717,6 +699,7 @@ role_pages = {
         "Work Orders",
         "Corrective Maintenance",
         "Procurement",
+        "Price Library",
         "Maintenance History"
     ],
 
@@ -732,7 +715,9 @@ role_pages = {
     "Management": [
         "Dashboard",
         "Maintenance History"
-    ]
+    ],
+    "Procurement": ["Dashboard", "Procurement", "Price Library", "Maintenance History"],
+    "Business Development": ["Dashboard", "Price Library"]
 }
 
 allowed_pages = role_pages.get(user_role, [])
@@ -4332,11 +4317,8 @@ elif page == "Procurement":
     st.title("Maintenance Procurement")
     st.caption("Manage PR / IER requests generated from maintenance activities.")
 
-    if not can_manage_procurement():
-        st.error(
-            "Procurement access is restricted to "
-            "Engineers and Administrators."
-        )
+    if user_role not in ["Administrator", "Engineer", "Procurement"]:
+        st.error("No procurement module access.")
         st.stop()
 
     # -----------------------------
@@ -4441,6 +4423,9 @@ elif page == "Procurement":
     # -----------------------------
     # PROCUREMENT REQUESTS
     # -----------------------------
+    from procurement_extensions import render_pr_documents
+    render_pr_documents(st, supabase, site_requests, current_user)
+
     st.subheader("Maintenance Procurement Requests")
 
     if site_requests:
@@ -4520,7 +4505,8 @@ elif page == "Procurement":
 
             if st.button(
                 "Update Procurement Request",
-                type="primary"
+                type="primary",
+                disabled=not can_manage_procurement()
             ):
 
                 updated_request = selected_request.copy()
@@ -4959,7 +4945,9 @@ elif page == "Procurement":
                         "Estimated Cost": estimated_cost,
                         "Priority": priority,
                         "Document": document_type,
-                        "Status": procurement_status
+                        "Status": "New",
+                        "Requested By": current_user.get("full_name", ""),
+                        "Created At": pd.Timestamp.now().isoformat()
                     }
                     try:
                         supabase.table("procurement_requests").insert({
@@ -4989,6 +4977,10 @@ elif page == "Procurement":
             "No corrective maintenance requiring procurement for the selected site."
         )
 
+
+elif page == "Price Library":
+    from procurement_extensions import render_price_library
+    render_price_library(st, supabase, current_user)
 
 elif page == "Maintenance History":
 
