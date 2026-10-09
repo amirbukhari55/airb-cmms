@@ -9,125 +9,96 @@ from pathlib import Path
 IER_TEMPLATE_PATH = (
     Path(__file__).resolve().parent
     / "templates"
-    / "AIRB-OP-F01 Operation Incident Emergency Report Temp.docx"
+    / "AUT-OP-F01 Operation Incident Emergency Report Temp.docx"
 )
 
 
 def generate_ier_docx(cm_record):
-    """
-    Generate AIRB Incident / Emergency Report using the
-    approved AIRB-OP-F01 Word template.
-    """
-
-    if not IER_TEMPLATE_PATH.exists():
+    """Fill the actual AUT-OP-F01 form tables from saved CMMS records."""
+    if not IER_TEMPLATE_PATH.is_file():
         raise FileNotFoundError(
-            f"IER template not found: {IER_TEMPLATE_PATH}"
+            f"AUT template missing: {IER_TEMPLATE_PATH}. "
+            "Upload the supplied templates folder to GitHub."
         )
 
     doc = Document(IER_TEMPLATE_PATH)
+    if len(doc.tables) < 2 or len(doc.tables[0].rows) < 2 or len(doc.tables[1].rows) < 6:
+        raise ValueError("Unexpected AUT-OP-F01 template layout.")
 
-    # --------------------------------
-    # HELPER: REPLACE TEXT IN DOCUMENT
-    # --------------------------------
-    def replace_text(old_text, new_text):
+    def value(*keys):
+        for key in keys:
+            item = cm_record.get(key)
+            if item is not None and str(item).strip():
+                return str(item).strip()
+        return ""
 
-        new_text = str(new_text or "")
+    asset_tag = value("Asset ID", "Asset")
+    asset = next(
+        (a for a in st.session_state.get("assets", [])
+         if str(a.get("Asset ID", "")).strip() == asset_tag
+         and str(a.get("Site ID", "")).strip() == value("Site ID")),
+        {}
+    )
 
-        # Normal paragraphs
-        for paragraph in doc.paragraphs:
-            if old_text in paragraph.text:
-                for run in paragraph.runs:
-                    if old_text in run.text:
-                        run.text = run.text.replace(
-                            old_text,
-                            new_text
-                        )
+    def asset_value(*keys):
+        for key in keys:
+            item = asset.get(key)
+            if item is not None and str(item).strip():
+                return str(item).strip()
+        return ""
 
-        # Tables
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for paragraph in cell.paragraphs:
-                        if old_text in paragraph.text:
-                            for run in paragraph.runs:
-                                if old_text in run.text:
-                                    run.text = run.text.replace(
-                                        old_text,
-                                        new_text
-                                    )
+    report_date = value("IER Date")
+    report_no = value("IER Report No.", "CM ID")
+    form_header = doc.tables[0]
+    form_body = doc.tables[1]
+    form_header.cell(0, 1).text = report_date
+    form_header.cell(1, 1).text = report_no
+    form_body.cell(0, 1).text = value("IER From", "IER Requested By")
+    form_body.cell(1, 1).text = value("IER Subject", "Problem")
+    form_body.cell(2, 1).text = value("IER Location", "Site ID")
 
-    # --------------------------------
-    # MAP CMMS DATA TO AIRB TEMPLATE
-    # --------------------------------
+    # AUT's narrative area is a blank merged table row, not a placeholder.
+    # Preserve the surrounding form and populate that area explicitly.
+    details = [
+        ("Asset ID", asset_tag),
+        ("Asset Name", asset_value("Asset Name")),
+        ("Asset Type", asset_value("Asset Type", "Equipment Type")),
+        ("Manufacturer", asset_value("Manufacturer")),
+        ("Component Broken", value("Component Broken", "Broken Component", "Failed Component", "Component")),
+        ("Incident / Emergency Description", value("IER Description", "Problem")),
+        ("Immediate / Corrective Action", value("IER Immediate Action", "Corrective Action")),
+    ]
+    narrative = form_body.cell(3, 0)
+    narrative.text = "\n".join(f"{label}: {content}" for label, content in details if content)
 
-    replacements = {
-        "<IER_DATE>": cm_record.get(
-            "IER Date",
-            ""
-        ),
+    requester = value("IER Requested By")
+    designation = value("IER Designation")
+    requested_date = report_date
+    requested_cell = form_body.cell(4, 0)
+    requested_cell.text = (
+        "Requested by:\n\n"
+        f"Name: {requester}\n"
+        f"Designation: {designation}\n"
+        f"Date: {requested_date}"
+    )
 
-        "<IER_REPORT_NO>": cm_record.get(
-            "IER Report No.",
-            ""
-        ),
+    # Only use real approval metadata. Do not imply that finalising an
+    # IER is equivalent to HOO verification or Director approval.
+    verifier = value("IER Verified By", "Verified By", "Engineer Reviewed By")
+    verification_date = value("IER Verified Date", "Verification Date")
+    verification_status = value("IER Verification Status")
+    verification_cell = form_body.cell(4, 2)
+    verification_cell.text = (
+        "Verified by:\n\n"
+        f"Name: {verifier}\n"
+        "Designation: HOO\n"
+        f"Date: {verification_date}"
+        + (f"\nStatus: {verification_status}" if verification_status else "")
+    )
 
-        "<IER_FROM>": cm_record.get(
-            "IER From",
-            ""
-        ),
-
-        "<IER_SUBJECT>": cm_record.get(
-            "IER Subject",
-            ""
-        ),
-
-        "<IER_LOCATION>": cm_record.get(
-            "IER Location",
-            ""
-        ),
-
-        "<IER_DESCRIPTION>": cm_record.get(
-            "IER Description",
-            ""
-        ),
-
-        "<IER_ACTION>": cm_record.get(
-            "IER Immediate Action",
-            ""
-        ),
-
-        "<IER_REQUESTED_BY>": cm_record.get(
-            "IER Requested By",
-            ""
-        ),
-
-        "<IER_DESIGNATION>": cm_record.get(
-            "IER Designation",
-            ""
-        ),
-
-        "<IER_FINALISED_BY>": cm_record.get(
-            "IER Finalised By",
-            ""
-        ),
-    }
-
-    for placeholder, value in replacements.items():
-        replace_text(
-            placeholder,
-            value
-        )
-
-    # --------------------------------
-    # SAVE GENERATED DOCUMENT TO MEMORY
-    # --------------------------------
-
+    # Retain the existing Director section of the AUT form unchanged.
     output = BytesIO()
-
     doc.save(output)
-
-    output.seek(0)
-
     return output.getvalue()
 
 # -----------------------------
